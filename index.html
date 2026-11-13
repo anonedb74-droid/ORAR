@@ -228,10 +228,24 @@ function migreazaDate(){
     }
   }
   for(const r of state.incadrare){ r.inOrar ??= true; r.motiv ??= ""; }
+  aplicaCorecturi();
   const toti = new Set(state.profesori);
   state.incadrare.forEach(r => toti.add(r.p));
   state.profesori = [...toti].sort(ro);
   state.versiune = 1;
+}
+/* Corecturi de date venite după prima instalare. Fiecare se aplică o singură dată și nu atinge altceva. */
+const CORECTURI = [
+  {id:"2026-11-13-xif-conducere", text:"XI F: ora de conducere a lui Bunduc Tudor (PIP, 24 de ore) se face în orele de curs, deci intră în orar.",
+   f: s => { s.incadrare.filter(r => r.clasa === "XI F" && r.tip === "PIP" && /^CONDUCEREA AUTOMOBILULUI$/i.test((r.disciplina || "").trim()) && /Bunduc/i.test(r.p))
+              .forEach(r => { r.inOrar = true; r.motiv = ""; }); }}
+];
+function aplicaCorecturi(){
+  state.meta.corecturi ??= [];
+  for(const c of CORECTURI){
+    if(state.meta.corecturi.includes(c.id)) continue;
+    try{ c.f(state); state.meta.corecturi.push(c.id); setTimeout(() => toast("Corectură aplicată: " + c.text), 800); saveState(); }catch(e){}
+  }
 }
 function saveState(){ cacheVer = null; clearTimeout(saveTimer); saveTimer = setTimeout(saveStateNow, 150); }
 function saveStateNow(){
@@ -706,7 +720,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   <div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>
-  <p class="muted">Aplicația ORAR · versiunea 1.1 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 1.2 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
