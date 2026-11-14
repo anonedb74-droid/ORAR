@@ -316,18 +316,19 @@ const CORECTURI = [
 ];
 /* Profilul, domeniul de pregătire și calificarea profesională pentru 2026-2027 (propunere, de verificat de Daniel). [profil, domeniu, calificare, nivel] */
 const PDC_2026 = {
-  "IX F":["","Mecanică","Mecanic auto","profesional"], "IX G":["","Agricultură","Mecanic agricol","profesional"],
-  "IX I":["Resurse naturale și protecția mediului","Industrie alimentară","",""], "IX J":["Servicii","Turism și alimentație","",""],
-  "X B":["","Turism și alimentație","Ospătar (chelner) vânzător în unități de alimentație publică",""], "X D":["Resurse naturale și protecția mediului","Protecția mediului","Tehnician ecolog și protecția calității mediului",""],
-  "X F":["","Mecanică","Mecanic auto",""], "X G":["","Agricultură","Mecanic agricol",""], "X J":["Servicii","Turism și alimentație","Tehnician în gastronomie",""],
-  "XI B":["","Turism și alimentație","Ospătar (chelner) vânzător în unități de alimentație publică",""], "XI F":["","Mecanică","Mecanic auto",""], "XI G":["","Agricultură","Mecanic agricol",""],
-  "XI I":["Resurse naturale și protecția mediului","Industrie alimentară","Tehnician în industria alimentară",""], "XI J":["Servicii","Turism și alimentație","",""],
-  "XI K":["","Industrie alimentară","Brutar - patiser - preparator produse făinoase",""], "XI L":["","Agricultură","Mecanic agricol",""],
-  "XII C":["Resurse naturale și protecția mediului","Agricultură","Tehnician veterinar",""], "XII I":["Resurse naturale și protecția mediului","Industrie alimentară","Tehnician în industria alimentară",""],
-  "XII J":["Servicii","Turism și alimentație","Tehnician în gastronomie",""]
+  "IX F":["Tehnic","Mecanică","","liceu"], "IX G":["Tehnic","Mecanică","","liceu"],
+  "IX I":["Resurse naturale și protecția mediului","Industrie alimentară","","liceu"], "IX J":["Servicii","Turism și alimentație","","liceu"],
+  "X B":["","Turism și alimentație","Ospătar (chelner) vânzător în unități de alimentație publică","profesional"], "X D":["Resurse naturale și protecția mediului","Protecția mediului","Tehnician ecolog și protecția calității mediului","liceu"],
+  "X F":["","Mecanică","Mecanic auto","profesional"], "X G":["","Mecanică","Mecanic agricol","profesional"], "X J":["Servicii","Turism și alimentație","Tehnician în gastronomie","liceu"],
+  "XI B":["","Turism și alimentație","Ospătar (chelner) vânzător în unități de alimentație publică","profesional"], "XI F":["","Mecanică","Mecanic auto","profesional"], "XI G":["","Mecanică","Mecanic agricol","profesional"],
+  "XI I":["Resurse naturale și protecția mediului","Industrie alimentară","Tehnician în industria alimentară","liceu"], "XI J":["Servicii","Turism și alimentație","Tehnician în gastronomie","liceu"],
+  "XI K":["","Industrie alimentară","Brutar - patiser - preparator produse făinoase","profesional"], "XI L":["","Mecanică","Mecanic agricol","profesional"],
+  "XII C":["Resurse naturale și protecția mediului","Agricultură","Tehnician veterinar","liceu"], "XII I":["Resurse naturale și protecția mediului","Industrie alimentară","Tehnician în industria alimentară","liceu"],
+  "XII J":["Servicii","Turism și alimentație","Tehnician în gastronomie","liceu"]
 };
-CORECTURI.push({id:"2026-11-14-profil-domeniu-calificare", text:"Clasele au acum profil, domeniu de pregătire și calificare profesională (propunere – verifică-le în „Clase și planuri”).",
-  f: s => { if(s.an !== "2026-2027") return; for(const cl of s.clase){ const m = PDC_2026[cl.id]; if(!m) continue; cl.profil = m[0]; cl.domeniu = m[1]; cl.calificare = m[2]; if(m[3]) cl.nivel = m[3]; } }});
+/* Din denumirile planurilor din Drive („Aplicatie ORAR”): clasele a IX-a sunt liceu (domeniul, fără calificare), Mecanic agricol e în domeniul Mecanică, XI J = Tehnician în gastronomie. */
+CORECTURI.push({id:"2026-11-14-profil-domeniu-calificare-v2", text:"Clasele au acum profil, domeniu de pregătire, calificare profesională și nivel, după planurile-cadru din Drive.",
+  f: s => { if(s.an !== "2026-2027") return; for(const cl of s.clase){ const m = PDC_2026[cl.id]; if(!m) continue; cl.profil = m[0]; cl.domeniu = m[1]; cl.calificare = m[2]; cl.nivel = m[3]; } }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
@@ -1383,7 +1384,7 @@ function dialogAnNou(){
   $("#modalCont").innerHTML = `<h3>Anul școlar următor</h3>
   <label>Anul școlar nou</label><input id="anNume" value="${esc(anUrmator(state.an))}" style="width:140px">
   <label style="display:flex;gap:6px;align-items:center;margin-top:12px"><input type="checkbox" id="anProm" checked> trec clasele în anul următor de studiu, după „În anul următor devine” din fișa clasei (implicit IX → X → XI → XII; ies clasele a XII-a și a XI-a de la profesional)</label>
-  <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anPlan" checked> clasele trecute iau disciplinele (și săptămânile, locația) de la clasa de anul acesta din anul de studiu următor cu aceeași calificare profesională (sau cu același nume)</label>
+  <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anPlan" checked> clasele trecute iau disciplinele (și săptămânile, locația) de la clasa de anul acesta din anul de studiu următor, de același nivel, cu aceeași calificare profesională (sau cu același nume, sau același domeniu)</label>
   <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anDir" checked> păstrez diriginții</label>
   <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anProf" checked> păstrez profesorii cu fișele lor (funcție, specialități, observații)</label>
   <p class="muted" style="font-size:13px">Se păstrează și locațiile, programul orelor, maximul de ore pe zi, regulile și notele. Orarul și încadrarea pornesc goale. Clasele a IX-a noi le adaugi în „Clase și planuri”; disciplinele lor le poți copia din modelele anului ${esc(state.an)}.</p>
@@ -1403,9 +1404,11 @@ function creeazaAnNou(){
   if(prom) for(const c of v.clase){
     const id = urmeaza(c); if(!id || clase.some(x => x.id === id)) continue;
     const rg = rangClasa(id), q = normDisc(c.calificare), dm = normDisc(c.domeniu);
-    const model = !plan ? null : (v.clase.find(o => rangClasa(o.id) === rg && o.discipline?.length && q && normDisc(o.calificare) === q)
-      || v.clase.find(o => o.id === id && o.discipline?.length)
-      || v.clase.find(o => rangClasa(o.id) === rg && o.discipline?.length && !q && dm && normDisc(o.domeniu) === dm));
+    // modelul: o clasă de anul acesta din anul de studiu următor, de același nivel (liceu / profesional), cu aceeași calificare; altfel cu același nume; altfel cu același domeniu
+    const ok = o => rangClasa(o.id) === rg && o.discipline?.length && o.nivel === c.nivel;
+    const model = !plan ? null : (v.clase.find(o => ok(o) && q && normDisc(o.calificare) === q)
+      || v.clase.find(o => ok(o) && o.id === id)
+      || v.clase.find(o => ok(o) && dm && normDisc(o.domeniu) === dm));
     clase.push({id, profil: c.profil || "", domeniu: c.domeniu || "", calificare: c.calificare || (model ? model.calificare : ""), nivel: model ? model.nivel : c.nivel, locatie: model ? model.locatie : c.locatie, diriginte: dir ? c.diriginte : "", saptamani: model ? model.saptamani : c.saptamani, discipline: model ? clone(model.discipline) : [], dinModel: model ? model.id : "", urmeaza: ""});
   }
   state = {versiune:1, an, zile: clone(v.zile || ZILE), clase, profesori: prof ? clone(v.profesori) : [], incadrare: [], orar: {},
@@ -1532,7 +1535,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 2.2 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 2.2.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
