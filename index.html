@@ -975,18 +975,27 @@ function fisaClasa(cl){
   <datalist id="dlProfil">${PROFILURI.map(x => `<option value="${esc(x)}">`).join("")}</datalist>
   <datalist id="dlDomeniu">${[...new Set(state.clase.map(x => x.domeniu).filter(Boolean))].sort(ro).map(x => `<option value="${esc(x)}">`).join("")}</datalist>
   <datalist id="dlCalif">${[...new Set(state.clase.map(x => x.calificare).filter(Boolean))].sort(ro).map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
+  ${cardSumarClasa(cl, A)}
   <div class="card"><h3>Disciplinele clasei (din planul-cadru)</h3>
-    <p class="muted" style="font-size:13px">Completezi ore/săpt. sau ore/an – cealaltă se calculează (ore/an = ore/săpt. × ${cl.saptamani} săptămâni). Pentru stagii, practica comasată sau conducerea individuală debifezi „în orar”: orele intră în normă, dar nu în orarul săptămânal. „Rămas” = ore/an încă neîncadrate (roșu dacă lipsesc sau sunt prea multe).</p>
-    <div class="scroll"><table><tr><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th>În orar</th><th>Încadrat (ore/săpt.)</th><th class="num">Rămas</th><th></th></tr>
-    ${A.map(x => `<tr><td><input list="dlDiscAll" value="${esc(x.it.d)}" style="min-width:200px;width:100%" onchange="setDisc('${jsq(c)}',${x.i},'d',this.value)"></td>
+    <div class="row" style="margin-bottom:8px"><span class="muted" style="font-size:13px">Arată:</span>
+      ${[["toate","Toate"],["CG","Cultură generală"],["SP","Specialitate"],["AL","Consiliere / dirigenție"]].map(([k, t]) => `<button class="btn mic ${filtCat === k ? "" : "sec"}" onclick="filtCat='${k}';render()">${t}</button>`).join("")}
+    </div>
+    <div class="row" style="margin-bottom:10px"><span class="muted" style="font-size:13px">Starea:</span>
+      ${[["toate","Toate"],["neatr","Doar neatribuite"],["atr","Doar atribuite"]].map(([k, t]) => `<button class="btn mic ${filtStare === k ? "" : "sec"}" onclick="filtStare='${k}';render()">${t}</button>`).join("")}
+    </div>
+    <p class="muted" style="font-size:13px">Completezi ore/săpt. sau ore/an – cealaltă se calculează (ore/an = ore/săpt. × ${cl.saptamani} săptămâni). Pentru stagii, practica comasată sau conducerea individuală debifezi „în orar”: orele intră în normă, dar nu în orarul săptămânal. O disciplină dată unui profesor apare „atribuită” și dispare din „Doar neatribuite”; dacă i-ai dat doar o parte din ore, rămâne acolo cu orele rămase.</p>
+    ${(() => { const V = A.filter(x => (filtCat === "toate" || categ(x.it) === filtCat) && (filtStare === "toate" || (filtStare === "neatr" ? x.rest > 0.5 : x.rest <= 0.5)));
+      const so = V.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0), sa = V.reduce((s, x) => s + x.it.oreAn, 0), sr = V.reduce((s, x) => s + Math.max(0, x.rest), 0);
+      return `<div class="scroll"><table><tr><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th>În orar</th><th>Atribuită (ore/săpt.)</th><th class="num">Neatribuit</th><th></th></tr>
+    ${V.map(x => `<tr><td><input list="dlDiscAll" value="${esc(x.it.d)}" style="min-width:200px;width:100%" onchange="setDisc('${jsq(c)}',${x.i},'d',this.value)">${x.rest > 0.5 ? `<div style="margin-top:4px"><button class="btn mic" onclick="alegeProfDisc('${jsq(c)}',${x.i})">Atribuie ${fmt(x.rest / cl.saptamani)} ore/săpt.</button></div>` : ""}</td>
       <td><select onchange="setDisc('${jsq(c)}',${x.i},'tip',this.value)">${TIPURI.map(t => `<option ${t === x.it.tip ? "selected" : ""}>${t}</option>`).join("")}</select></td>
       <td class="num"><input type="number" step="0.5" min="0" value="${+(x.it.oreAn / cl.saptamani).toFixed(2)}" style="width:72px" onchange="setDisc('${jsq(c)}',${x.i},'sapt',this.value)"></td>
       <td class="num"><input type="number" min="0" value="${x.it.oreAn}" style="width:78px" onchange="setDisc('${jsq(c)}',${x.i},'an',this.value)"></td>
       <td style="text-align:center"><input type="checkbox" ${x.it.inOrar ? "checked" : ""} onchange="setDisc('${jsq(c)}',${x.i},'inOrar',this.checked)"></td>
-      <td style="font-size:13px">${x.R.map(r => `<a href="#" onclick="deschideFisaProf('${jsq(r.p)}');return false">${esc(scurt(r.p))}</a> ${fmt(r.oreAn / cl.saptamani)}`).join("<br>") || '<span class="muted">–</span>'}</td>
-      <td class="num ${Math.abs(x.rest) > 0.5 ? "rau" : "ok"}">${Math.abs(x.rest) > 0.5 ? fmt(x.rest) : "✓"}</td>
-      <td><button class="btn sec mic" onclick="stergeDisc('${jsq(c)}',${x.i})">✕</button></td></tr>`).join("")}
-    <tr><th>Total în orar / total pe an</th><th></th><th class="num">${fmt(planOrar / cl.saptamani)}</th><th class="num">${fmt(planAn)}</th><th colspan="4"></th></tr></table></div>
+      <td style="font-size:13px">${x.R.length ? `${x.rest <= 0.5 ? '<span class="ok">✓ atribuită</span>' : '<span class="muted">parțial</span>'}<br>` : '<span class="rau">neatribuită</span>'}${x.R.map(r => `<a href="#" onclick="deschideFisaProf('${jsq(r.p)}');return false">${esc(scurt(r.p))}</a> ${fmt(r.oreAn / cl.saptamani)}`).join("<br>")}</td>
+      <td class="num ${Math.abs(x.rest) > 0.5 ? "rau" : "ok"}">${x.rest > 0.5 ? `${fmt(x.rest / cl.saptamani)}/săpt.<div style="font-size:11px">${fmt(x.rest)}/an</div>` : x.rest < -0.5 ? `peste plan ${fmt(-x.rest)}/an` : "✓"}</td>
+      <td><button class="btn sec mic" onclick="stergeDisc('${jsq(c)}',${x.i})">✕</button></td></tr>`).join("") || `<tr><td colspan="8" class="muted">${filtStare === "neatr" ? "✓ Nicio oră neatribuită aici." : "Nicio disciplină."}</td></tr>`}
+    <tr><th>Total afișat (în orar / pe an)</th><th></th><th class="num">${fmt(so / cl.saptamani)}</th><th class="num">${fmt(sa)}</th><th colspan="2"></th><th class="num">${sr > 0.5 ? fmt(sr / cl.saptamani) + "/săpt." : "✓"}</th><th></th></tr></table></div>`; })()}
     <div class="row" style="margin-top:10px"><button class="btn mic" onclick="adaugaDisc('${jsq(c)}')">+ disciplină</button><span class="grow"></span>
       <select id="srsPlan" style="max-width:260px"><option value="">Copiază disciplinele de la…</option>
         ${surse.length ? `<optgroup label="Clasele din ${esc(state.an)}">${surse.map(o => `<option value="c:${esc(o.id)}">${esc(o.id)} – ${esc(eticheta(o))}</option>`).join("")}</optgroup>` : ""}
@@ -997,6 +1006,35 @@ function fisaClasa(cl){
     <select id="profLaCls" style="min-width:220px"><option value="">– alege profesorul –</option>${state.profesori.map(p => `<option>${esc(p)}</option>`).join("")}</select>
     <button class="btn mic" onclick="$('#profLaCls').value&&asociazaClasa($('#profLaCls').value,'${jsq(c)}')">Asociază</button></div></div>
   ${dlDisc()}${dlProfi()}`;
+}
+let filtCat = "toate", filtStare = "toate";
+const categ = it => it.tip === "CG" ? "CG" : (it.tip === "DSP" || it.tip === "PIP") ? "SP" : "AL";
+function cardSumarClasa(cl, A){
+  const rand = (k, titlu) => {
+    const X = k === "tot" ? A : A.filter(x => categ(x.it) === k);
+    const so = X.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0), sa = X.reduce((s, x) => s + x.it.oreAn, 0);
+    const at = X.reduce((s, x) => s + Math.min(x.al, x.it.oreAn), 0), ne = X.reduce((s, x) => s + Math.max(0, x.rest), 0);
+    const tag = k === "tot" ? "th" : "td";
+    return `<tr${k === "tot" ? "" : ` class="click" onclick="filtCat='${k}';filtStare='toate';render()"`}><${tag}>${titlu}</${tag}><${tag} class="num">${X.length}</${tag}><${tag} class="num">${fmt(so / cl.saptamani)}</${tag}><${tag} class="num">${fmt(sa)}</${tag}><${tag} class="num">${fmt(at)}</${tag}><${tag} class="num ${ne > 0.5 ? "rau" : "ok"}">${ne > 0.5 ? fmt(ne) : "✓"}</${tag}></tr>`;
+  };
+  return `<div class="card"><h3>Totalul orelor din planul clasei</h3><div class="scroll"><table>
+    <tr><th>Categoria</th><th class="num">Disc.</th><th class="num">Ore/ săpt.</th><th class="num">Ore/an</th><th class="num">Atri­buite</th><th class="num">Neatri­buite</th></tr>
+    ${rand("CG", "Cultură generală")}${rand("SP", "Specialitate")}${rand("AL", "Dirigenție")}${rand("tot", "Total clasă")}
+  </table></div><p class="muted" style="font-size:12px;margin:6px 0 0">Cultură generală = trunchiul comun (CG); specialitate = DSP și instruire practică (PIP); dirigenție = O-DIRIG, consiliere (O-CO). Ore/săpt. = în orar; atribuite și neatribuite = ore pe an. Atinge o categorie ca să vezi doar disciplinele ei.</p></div>`;
+}
+/* „Atribuie” de la o disciplină neatribuită: alegi profesorul (sus cei care o au la specialități), apoi se deschide asocierea cu disciplina bifată. */
+function alegeProfDisc(c, i){
+  const it = clasa(c).discipline[i];
+  const spec = p => (state.fise[p]?.specialitati || []).some(s => normDisc(s) === normDisc(it.d));
+  const P1 = state.profesori.filter(spec), P2 = state.profesori.filter(p => !spec(p));
+  $("#modalCont").innerHTML = `<h3>Atribuie ${esc(it.d)} · ${esc(c)}</h3>
+    <label>Profesorii care o au la specialități</label>
+    <div class="row">${P1.map(p => `<button class="btn mic" onclick="asociazaClasa('${jsq(p)}','${jsq(c)}',${i})">${esc(p)} <span style="opacity:.8">${procent(norma(p))}</span></button>`).join("") || '<span class="muted">Niciunul – alege din lista de mai jos.</span>'}</div>
+    <label style="margin-top:12px">Alt profesor</label>
+    <div class="row"><select id="altProf" style="min-width:220px"><option value="">– alege –</option>${P2.map(p => `<option>${esc(p)}</option>`).join("")}</select>
+    <button class="btn sec mic" onclick="$('#altProf').value&&asociazaClasa($('#altProf').value,'${jsq(c)}',${i})">Continuă</button></div>
+    <div class="row" style="margin-top:14px"><span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+  $("#modal").classList.add("deschis");
 }
 function setCls(c, k, v){
   const cl = clasa(c); if(!cl) return;
@@ -1153,7 +1191,7 @@ function stergeRand(i){
 
 /* Asocierea profesor–clasă: aplicația propune disciplinele din specialitățile profesorului, cu orele rămase; se pot schimba de mână. */
 let asoc = null;
-function asociazaClasa(p, c){ asoc = {p, c: c || "", val: null}; renderAsoc(); $("#modal").classList.add("deschis"); }
+function asociazaClasa(p, c, pre){ asoc = {p, c: c || "", val: null, pre}; renderAsoc(); $("#modal").classList.add("deschis"); }
 function renderAsoc(){
   const {p, c} = asoc, f = state.fise[p] || {specialitati:[]};
   let h = `<h3>Asociază o clasă · ${esc(p)}</h3><label>Clasa</label><select onchange="asoc.c=this.value;asoc.val=null;renderAsoc()" style="width:100%"><option value="">– alege clasa –</option>${state.clase.map(cl => `<option value="${esc(cl.id)}" ${cl.id === c ? "selected" : ""}>${esc(cl.id)} – ${esc(eticheta(cl))}</option>`).join("")}</select>`;
@@ -1168,6 +1206,9 @@ function renderAsoc(){
         const rest = Math.max(0, x.rest);
         asoc.val[x.i] = {on: al > 0, oreAn: al};
       }
+      // venit de la „Atribuie”: disciplina aleasă e bifată, cu orele rămase
+      const px = A.find(x => x.i === asoc.pre);
+      if(px && !asoc.val[px.i].on){ asoc.val[px.i] = {on: true, oreAn: Math.max(0, Math.round((px.it.oreAn - px.R.filter(r => r.p !== p).reduce((s, r) => s + r.oreAn, 0)) * 100) / 100)}; }
     }
     const poate = A.filter(x => spec(x.it)), altele = A.filter(x => !spec(x.it));
     if(!A.length) h += `<p class="rau">Clasa ${esc(c)} nu are încă disciplinele trecute. Le adaugi în „Clase și planuri”.</p>`;
@@ -1545,7 +1586,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 2.3 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 2.4 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
