@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ORAR · LT „Al. Vlahuță” Șendriceni</title>
+<meta name="theme-color" content="#1E3A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ORAR">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --infield:#1E3A5F;      /* antet: bleumarin */
+  --track:#D4A017;        /* accent: auriu */
+  --chalk:#F5F7FA;        /* fundal */
+  --card:#FFFFFF;
+  --ink:#1B2430;
+  --muted:#6B7685;
+  --border:#D9E0E8;
+  --ok:#2E7D4F;
+  --danger:#C0392B;
+  --yellow:#FFF4CC;
+  --dor:#E3EEFB;          /* Dorohoi */
+  --sen:#E6F4EA;          /* Șendriceni */
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--chalk);color:var(--ink);font-size:15px;line-height:1.45}
+h1,h2,h3,.osw{font-family:Oswald,"Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.02em;font-weight:600}
+h2{font-size:20px;margin:0 0 12px}
+h3{font-size:16px;margin:18px 0 8px}
+header{background:var(--infield);color:#fff;border-bottom:4px solid var(--track);padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;padding-top:max(10px,env(safe-area-inset-top))}
+header h1{font-size:20px;margin:0;flex:1}
+header small{display:block;font-family:Inter,sans-serif;text-transform:none;font-weight:400;font-size:12px;opacity:.8;letter-spacing:0}
+#salvat{font-size:12px;opacity:.85;white-space:nowrap}
+#menuBtn{display:none;background:none;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:6px 10px;font-size:18px}
+.layout{display:flex;min-height:calc(100vh - 60px)}
+nav{width:210px;background:#fff;border-right:1px solid var(--border);padding:10px 0;flex-shrink:0}
+nav button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;padding:11px 18px;font-size:15px;color:var(--ink);cursor:pointer;border-left:4px solid transparent}
+nav button:hover{background:#F0F3F7}
+nav button.activ{border-left-color:var(--track);background:#FBF6E6;font-weight:600}
+nav .badge{margin-left:auto}
+main{flex:1;padding:18px;min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grow{flex:1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px}
+.kpi b{display:block;font-size:26px;font-family:Oswald,sans-serif}
+.kpi span{color:var(--muted);font-size:13px}
+.kpi.rau b{color:var(--danger)} .kpi.bun b{color:var(--ok)}
+button.btn,.btn{background:var(--infield);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:15px;cursor:pointer;font-family:inherit}
+.btn.sec{background:#fff;color:var(--infield);border:1px solid var(--infield)}
+.btn.acc{background:var(--track);color:#1B2430}
+.btn.rosu{background:var(--danger)}
+.btn.mic{padding:5px 9px;font-size:13px}
+.btn:disabled{opacity:.5}
+select,input,textarea{font-size:16px;font-family:inherit;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--ink)}
+textarea{width:100%;min-height:70px}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:3px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--border);padding:6px 8px;vertical-align:top;font-size:14px}
+th{background:#EEF2F6;text-align:left;font-weight:600}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.click{cursor:pointer} tr.click:hover td{background:#F8FAFC}
+.grid td.cel{min-width:130px;height:62px;cursor:pointer;position:relative}
+td.mutat{background:#FFF4C2 !important}
+.grid td.cel:hover{outline:2px solid var(--track);outline-offset:-2px}
+.grid td.gol{background:#FAFBFC}
+.grid td.err{box-shadow:inset 0 0 0 2px var(--danger)}
+.grid td.warn{box-shadow:inset 0 0 0 2px #E6A100}
+.grid td.sel{outline:3px solid var(--track);outline-offset:-3px;background:#FFF9E5}
+.grid td.ora{width:92px;white-space:nowrap;background:#EEF2F6;font-size:12px;color:var(--muted)}
+.grid td.ora b{font-size:15px;color:var(--ink);display:block}
+.disc{font-weight:600;font-size:13px;line-height:1.25}
+.prof{font-size:12px;color:var(--muted);margin-top:2px}
+.per{display:inline-block;font-size:10px;border-radius:4px;padding:0 4px;margin-left:3px;background:#E8EDF3;color:var(--infield);font-weight:700}
+.loc-Dorohoi{background:var(--dor)} .loc-Șendriceni{background:var(--sen)}
+.tag{display:inline-block;font-size:12px;border-radius:999px;padding:1px 8px;border:1px solid var(--border);background:#fff}
+.tag.Dorohoi{background:var(--dor);border-color:#B9D2F2} .tag.Șendriceni{background:var(--sen);border-color:#B7DEC3}
+.badge{display:inline-block;min-width:22px;text-align:center;border-radius:999px;font-size:12px;padding:1px 7px;background:var(--danger);color:#fff;font-weight:700}
+.badge.galben{background:#E6A100}
+.badge.verde{background:var(--ok)}
+.niv-eroare{border-left:5px solid var(--danger)} .niv-avertisment{border-left:5px solid #E6A100} .niv-info{border-left:5px solid #7A8AA0}
+.item{padding:9px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:#fff;display:flex;gap:10px;align-items:flex-start}
+.item .t{flex:1}
+.muted{color:var(--muted)} .ok{color:var(--ok)} .rau{color:var(--danger)}
+.banner{background:var(--yellow);border:1px solid #E8D48A;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1B2430;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .25s;z-index:60;max-width:90vw;pointer-events:none}
+#toast.vizibil{opacity:.95}
+.modal-fundal{position:fixed;inset:0;background:rgba(10,20,35,.45);display:none;z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 12px}
+.modal-fundal.deschis{display:block}
+.modal{background:#fff;border-radius:12px;max-width:620px;margin:0 auto;padding:18px;border-top:4px solid var(--track)}
+.modal h3{margin-top:0}
+.pr-linie{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.pr-linie select{flex:1;min-width:160px}
+#printArea{display:none}
+/* Planșa – ca foaia din Excel */
+table.plansa{border-collapse:collapse;width:auto;background:#fff;font-family:Calibri,"Segoe UI",Inter,sans-serif}
+table.plansa th,table.plansa td{border:1px solid #555;padding:2px 4px;text-align:center;vertical-align:middle;font-size:11px;line-height:1.15}
+table.plansa .tit{border:0;font-weight:700;font-size:13px;background:#fff;text-align:left}
+table.plansa .cl{font-size:24px;font-weight:700;background:#E0E0E0;min-width:118px}
+table.plansa .hd{font-size:10px;font-weight:700;background:#E0E0E0}
+table.plansa .lab{font-weight:700;background:#E0E0E0;font-size:13px;min-width:92px}
+table.plansa .zi{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;background:#BFBFBF;font-size:13px;letter-spacing:.08em;width:24px}
+table.plansa .nr{font-weight:700;width:22px;background:#fff}
+table.plansa .tm{font-weight:700;background:#BFBFBF;font-size:12px;white-space:nowrap;text-align:left}
+table.plansa td.s{font-size:10px;height:40px;min-width:118px;max-width:150px;cursor:pointer;text-transform:uppercase}
+table.plansa td.s small{display:block;color:#444;font-size:9px;text-transform:none;margin-top:1px}
+table.plansa td.s:hover{outline:2px solid var(--track);outline-offset:-2px}
+table.plansa td.err{background:#FDE2DF} table.plansa td.warn{background:#FFF1C9}
+table.plansa .gap{border:0;width:14px;background:#fff}
+table.plansa th.pn{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;background:#E0E0E0;height:150px;width:34px;white-space:nowrap}
+table.plansa td.t{font-size:10px;width:34px;white-space:nowrap}
+table.plansa td.t.alt{color:#7A4B00}
+table.plansa td.t.locD{background:#9BC2E6}
+table.plansa td.t.locS{background:#A9D08E}
+table.plansa td.t.pachet{background:#F4B084;white-space:normal;line-height:1.1}
+table.plansa td.t small{display:block;font-size:8px;color:#333}
+table.plansa td.t{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.leg-plansa span{display:inline-block;padding:2px 8px;margin-right:6px;border:1px solid #999;border-radius:3px;font-size:12px}
+table.plansa tr.inc-zi td,table.plansa tr.inc-zi th{border-top:3px solid #111}
+table.plansa .gol{background:#fff}
+
+@media (max-width:820px){
+  #menuBtn{display:block}
+  nav{position:fixed;top:0;left:0;bottom:0;z-index:40;transform:translateX(-105%);transition:transform .2s;box-shadow:2px 0 12px rgba(0,0,0,.2);padding-top:70px;width:240px}
+  nav.deschis{transform:none}
+  main{padding:12px}
+  .grid td.cel{min-width:112px}
+}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{background:#fff;font-size:11px}
+  header,nav,main,.layout,#toast,.modal-fundal{display:none!important}
+  #printArea{display:block}
+  .pagina{page-break-after:always}
+  .pagina:last-child{page-break-after:auto}
+  .pagina h2{font-size:16px;margin:0 0 4px}
+  .pagina table td,.pagina table th{font-size:10px;padding:3px 5px}
+  .grid td.cel{height:auto;min-width:0}
+  table.plansa td.s{height:auto;min-width:0}
+  table.plansa td.err,table.plansa td.warn{background:#fff}
+}
+</style>
+</head>
+<body>
+<header>
+  <button id="menuBtn" onclick="document.querySelector('nav').classList.toggle('deschis')" aria-label="Meniu">☰</button>
+  <h1>Orar 2026–2027<small>Liceul Tehnologic „Al. Vlahuță” Șendriceni</small></h1>
+  <span id="salvat"></span>
+</header>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<div class="modal-fundal" id="modal" onclick="if(event.target===this)inchideModal()"><div class="modal" id="modalCont"></div></div>
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   APLICAȚIA ORAR – versiunea 1 (editor cu verificări)
+   Datele inițiale: ORAR 2026-2027.xlsm + încadrarea
+   „CATEDRE AN SCOLAR 2026-2027 FINAL 28 09 2026”.
+   ============================================================ */
+const DATA_INITIAL = /*__DATA__*/null;
+/* Orarul reorganizat (13.11.2026): mai puține zile în două locații (R2) și mai puține ferestre (R13). */
+const PROPUNERE = /*__PROPUNERE__*/null;
+const KEY = "orar_state_v1";
+const ZILE = ["Luni","Marți","Miercuri","Joi","Vineri"];
+const PERIOADE = {T:"tot anul", P1:"prima perioadă", P2:"a doua perioadă", A:"alternanță"};
+const TABURI = [
+  {id:"azi", t:"Azi", i:"📅"},
+  {id:"dash", t:"Dashboard", i:"📊"},
+  {id:"clase", t:"Orar pe clase", i:"🏫"},
+  {id:"prof", t:"Orar pe profesori", i:"👤"},
+  {id:"plansa", t:"Planșa (ca în Excel)", i:"🗂"},
+  {id:"inc", t:"Încadrare", i:"📋"},
+  {id:"ver", t:"Verificări", i:"✅"},
+  {id:"reg", t:"Reguli", i:"📐"},
+  {id:"date", t:"Date și setări", i:"💾"}
+];
+const REGULI_INITIALE = [
+  {id:"R1", text:"Locații: Dorohoi, Șendriceni (liceul), Ghilea (școala gimnazială); fiecare oră are locația ei.", auto:"Locația vine din clasă; Ghilea nu e în acest orar."},
+  {id:"R2", text:"Un profesor stă toată ziua într-o singură locație, cât se poate.", auto:"Avertisment când un profesor are în aceeași zi ore la Dorohoi și la Șendriceni."},
+  {id:"R3", text:"Pentru fiecare profesor se stabilesc dinainte: locația, catedra pe obiecte, numărul de ore, restricțiile pe zile.", auto:"Catedra și orele vin din încadrare; restricțiile pe zile vin în versiunea următoare."},
+  {id:"R4", text:"Alternanțe de profesori la aceeași oră: o săptămână unul, următoarea altul, sau pe perioade (de exemplu primele 5 săptămâni unul, apoi altul).", auto:"Fiecare profesor dintr-o celulă are perioada lui: tot anul, prima perioadă, a doua perioadă sau alternanță."},
+  {id:"R5", text:"Practica (APLICAȚII) se face în atelierele de la Șendriceni, de obicei zi întreagă, cu maistru instructor.", auto:""},
+  {id:"R6", text:"Ordinea la conceperea orarului: întâi zilele de practică, apoi profesorii de cultură generală.", auto:"Se aplică în generator (versiunea următoare)."},
+  {id:"R7", text:"Fiecare clasă are ora 1 în fiecare zi; nicio clasă nu poate începe de la ora 2. (Reconfirmată pe 13.11.2026.)", auto:"Eroare când o clasă nu are ora 1 sau are o fereastră în zi."},
+  {id:"R8", text:"Fiecare clasă are un anumit număr de ore pe săptămână, în funcție de anul de studiu.", auto:"Eroare când orele din orar diferă de cele din încadrare."},
+  {id:"R9", text:"Fiecare clasă are un anumit număr de săptămâni de practică comasată, la agenți economici; dacă nu se găsesc agenți economici pentru toți elevii clasei, clasa rămâne și face practica comasată în atelierul școlii, cu profesorul desemnat conform încadrării.", auto:"Orele de stagiu din încadrare nu se pun în orarul săptămânal."},
+  {id:"R10", text:"Catedra unui profesor = 20 ore/săptămână × 36 săptămâni (720); maistrul instructor = 26 × 36 (936).", auto:"Norma se calculează din încadrare: ore ÷ 720, iar orele de instruire practică ÷ 936."},
+  {id:"R11", text:"Unele clase au în planul de învățământ mai multe sau mai puține săptămâni pe an școlar; trebuie identificate și stabilite din planul-cadru.", auto:"Săptămânile fiecărei clase se pot modifica în Date și setări."},
+  {id:"R13", text:"Profesorii nu au ferestre (ore libere între două ore în aceeași zi), cât se poate. R2 (o singură locație pe zi) este mai grea și are prioritate.", auto:"Avertisment pentru fiecare zi în care un profesor are fereastră."},
+  {id:"R14", text:"La disciplinele de cultură generală, o clasă are cel mult 2 ore pe zi din aceeași disciplină (de exemplu, nu 3 ore de Limba română în aceeași zi).", auto:"Eroare când o disciplină de cultură generală are 3 sau mai multe ore în aceeași zi la o clasă."},
+  {id:"R15", text:"Un profesor care are în aceeași zi ore în ambele locații se mută o singură dată (de exemplu Șendriceni → Dorohoi), nu dus-întors (Șendriceni → Dorohoi → Șendriceni).", auto:"Eroare când un profesor schimbă locația de mai multe ori în aceeași zi."},
+  {id:"R16", text:"Între ore în locații diferite, un profesor are nevoie de cel puțin 15 minute pentru drum, socotite după programul orelor din fiecare locație (de exemplu, marți: Șendriceni ora a 2-a se termină la 9:25, Dorohoi ora a 3-a începe la 10:00 – merge).", auto:"Eroare când timpul dintre ultima oră într-o locație și prima oră în cealaltă e sub 15 minute."},
+  {id:"R17", text:"Când un profesor are ore în ambele locații în aceeași zi, întâi are ore la Șendriceni, apoi la Dorohoi (majoritatea profesorilor locuiesc în Dorohoi), cât se poate.", auto:"Avertisment când un profesor merge de la Dorohoi la Șendriceni."},
+  {id:"R18", text:"Clasele care fac Aplicații practice în același atelier nu se suprapun. Directorul pune întâi practica și repartizează clasele pe ateliere; abia apoi se așază orele de cultură generală și de specialitate.", auto:"Reorganizarea automată nu mută zilele de Aplicații practice. Verificarea pe ateliere vine după ce se stabilește atelierul fiecărei clase."},
+  {id:"R19", text:"Practica e de două feluri: practica comasată (săptămâni întregi, la agenți economici sau în atelierul școlii) și Aplicațiile practice săptămânale în atelierele școlii, în pachete de 6 ore (o zi întreagă) cu maistrul instructor. Exemplu: X F are Aplicații practice joi și vineri.", auto:"Blocurile de 3+ ore la rând cu același profesor rămân neatinse la reorganizare."},
+  {id:"R20", text:"Calitatea orarului: ore cât mai compacte și fără deplasări în două locații. Sunt situații în care deplasarea e necesară și nu există altă soluție (de exemplu, Pușcașu are o singură zi, cu ore în ambele locații).", auto:"Zilele în două locații apar ca avertismente R2; cele inevitabile rămân."},
+  {id:"R21", text:"Profesorii care au ore la școala gimnazială din Ghilea pot avea în aceeași zi și ore la Șendriceni (2–4 minute cu mașina între școli).", auto:"Orarul de la Ghilea nu e în aplicație; zilele profesorilor nu se schimbă la reorganizare, ca să nu se strice orarul de la Ghilea."},
+  {id:"R12", text:"Clasele a IX-a au Lăcătușărie generală cam primele 7 săptămâni, apoi pe aceleași ore au Bazele desenului tehnic cu Asaftei Lidia. [De rescris: în orarul actual, ziua de specialitate de la IX F și IX G are Dohotariu Viorel în prima perioadă și Pohoață Mihaela în a doua, câte 15 săptămâni.]", auto:""}
+];
+const NOTE_INITIALE = [
+  "Legislație rutieră (laboratorul tehnologic de la modulul de conducere): o zi pe săptămână de 6 ore, la început de an, până se termină orele; apoi aceeași zi trece pe APLICAȚII. La mecanic agricol: 54 de ore, 9 săptămâni, curs unic pentru B și Tr.",
+  "Orele de conducere sunt individuale, în afara orarului clasei. Mecanic agricol: 54 de ore pe elev (30 la B, 24 la Tr).",
+  "IX F și IX G: modulele de specialitate se fac câte 6 ore, o zi pe săptămână, până se termină orele conform programei.",
+  "XII I, Educație fizică: Ștefan Nicolae a făcut primele 6 ore, Daniel Botezatu continuă până la finalul anului.",
+  "APLICAȚII pot fi făcute de maistru instructor sau de inginer; cine le face e normat ca maistru (26 ore). La un profesor cu ore de teorie și de APLICAȚII, norma se calculează separat pe fiecare tip.",
+  "Zile de 7 ore: la Dorohoi doar lunea; la Șendriceni de luni până joi; vinerea 6 ore peste tot."
+];
+
+let state = null;
+let tab = "azi";
+let saveTimer = null;
+let undoStack = [];
+let selClasa = null, selProf = null, aziZi = null;
+let swapMode = false, swapSel = null;
+let filtruInc = {p:"", c:"", text:"", doarOrar:true};
+let filtruVer = {eroare:true, avertisment:true, info:true};
+let cacheVer = null;
+let plansaLoc = "Șendriceni", plansaBloc = "ambele";
+
+/* ---------- utilitare ---------- */
+const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => (Math.round(n*100)/100).toLocaleString("ro-RO", {maximumFractionDigits:2});
+const ro = (a,b) => a.localeCompare(b, "ro");
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("vizibil"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("vizibil"), 2600); }
+function scurt(p){ const w=p.split(" "); return w.length>1 ? w[0]+" "+w[w.length-1][0]+"." : p; }
+function azi(){ return new Date().toLocaleDateString("ro-RO"); }
+
+/* ---------- date: încărcare, migrare, salvare ---------- */
+function load(){
+  try{ const s = localStorage.getItem(KEY); if(s) state = JSON.parse(s); }catch(e){ state = null; }
+  if(!state) state = clone(DATA_INITIAL);
+  migreazaDate();
+}
+/* Completează câmpurile lipsă; nu șterge nimic. */
+function migreazaDate(){
+  state.reguli ??= clone(REGULI_INITIALE);
+  for(const id of ["R13","R14","R15","R16","R17","R18","R19","R20","R21"]) if(!state.reguli.some(r => r.id === id)) state.reguli.push(clone(REGULI_INITIALE.find(r => r.id === id)));
+  { const r9 = state.reguli.find(r => r.id === "R9"), n9 = REGULI_INITIALE.find(r => r.id === "R9"); if(r9 && !r9.text.includes("pentru toți elevii")) r9.text = n9.text; }
+  state.reguli.sort((a, b) => (+a.id.slice(1) || 99) - (+b.id.slice(1) || 99));
+  state.note ??= clone(NOTE_INITIALE);
+  state.meta ??= {};
+  state.meta.ultimBackup ??= null;
+  state.meta.taburiAscunse ??= [];
+  state.locatiiMaxOre ??= clone(DATA_INITIAL.locatiiMaxOre);
+  state.clopot ??= clone(DATA_INITIAL.clopot);
+  state.profesori ??= [];
+  for(const cl of state.clase){
+    state.orar[cl.id] ??= {};
+    for(const z of ZILE){
+      state.orar[cl.id][z] ??= {};
+      for(const h of Object.keys(state.orar[cl.id][z])){
+        const x = state.orar[cl.id][z][h];
+        if(!x){ delete state.orar[cl.id][z][h]; continue; }
+        x.disc ??= ""; x.prof ??= [];
+        x.prof.forEach(p => p.per ??= "T");
+      }
+    }
+  }
+  for(const r of state.incadrare){ r.inOrar ??= true; r.motiv ??= ""; }
+  aplicaCorecturi();
+  const toti = new Set(state.profesori);
+  state.incadrare.forEach(r => toti.add(r.p));
+  state.profesori = [...toti].sort(ro);
+  state.versiune = 1;
+}
+/* Corecturi de date venite după prima instalare. Fiecare se aplică o singură dată și nu atinge altceva. */
+const CORECTURI = [
+  {id:"2026-11-13-xif-conducere", text:"XI F: ora de conducere a lui Bunduc Tudor (PIP, 24 de ore) se face în orele de curs, deci intră în orar.",
+   f: s => { s.incadrare.filter(r => r.clasa === "XI F" && r.tip === "PIP" && /^CONDUCEREA AUTOMOBILULUI$/i.test((r.disciplina || "").trim()) && /Bunduc/i.test(r.p))
+              .forEach(r => { r.inOrar = true; r.motiv = ""; }); }}
+];
+function aplicaCorecturi(){
+  state.meta.corecturi ??= [];
+  for(const c of CORECTURI){
+    if(state.meta.corecturi.includes(c.id)) continue;
+    try{ c.f(state); state.meta.corecturi.push(c.id); setTimeout(() => toast("Corectură aplicată: " + c.text), 800); saveState(); }catch(e){}
+  }
+}
+function saveState(){ cacheVer = null; clearTimeout(saveTimer); saveTimer = setTimeout(saveStateNow, 150); }
+function saveStateNow(){
+  clearTimeout(saveTimer);
+  try{
+    localStorage.setItem(KEY, JSON.stringify(state));
+    $("#salvat").textContent = "Salvat " + new Date().toLocaleTimeString("ro-RO");
+  }catch(e){ toast("Nu am putut salva: " + e.message); }
+}
+window.addEventListener("beforeunload", saveStateNow);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") saveStateNow(); });
+function pushUndo(){ undoStack.push(JSON.stringify(state.orar)); if(undoStack.length > 40) undoStack.shift(); }
+function anuleaza(){
+  if(!undoStack.length){ toast("Nu e nimic de anulat."); return; }
+  state.orar = JSON.parse(undoStack.pop()); saveState(); render(); toast("Am anulat ultima modificare.");
+}
+
+/* ---------- calcule ---------- */
+const clasa = id => state.clase.find(c => c.id === id);
+const areContinut = x => !!x && (!!x.disc || (x.prof && x.prof.length > 0));
+/* Ore pe săptămână dintr-un rând de încadrare = ore pe an ÷ săptămânile clasei. */
+function oreSapt(r){ const c = clasa(r.clasa); return c ? r.oreAn / c.saptamani : 0; }
+function incClasa(c){ return state.incadrare.filter(r => r.clasa === c && r.inOrar).reduce((s,r) => s + oreSapt(r), 0); }
+function incPereche(p, c){ return state.incadrare.filter(r => r.p === p && r.clasa === c && r.inOrar).reduce((s,r) => s + oreSapt(r), 0); }
+/* Norma (R10): ore pe an ÷ 720; instruirea practică (PIP) ÷ 936. Include stagiile și conducerea. */
+function norma(p){
+  let n = 0;
+  for(const r of state.incadrare.filter(r => r.p === p)) n += r.oreAn / (r.tip === "PIP" ? 936 : 720);
+  return n;
+}
+/* Index: unde e fiecare profesor și câte ore are la fiecare clasă. */
+function index(){
+  const prof = {}, pereche = {};
+  for(const cl of state.clase){
+    for(const z of ZILE){
+      const zi = state.orar[cl.id][z] || {};
+      for(const h of Object.keys(zi)){
+        const x = zi[h];
+        for(const pr of x.prof || []){
+          prof[pr.p] ??= {}; prof[pr.p][z] ??= {}; prof[pr.p][z][h] ??= [];
+          prof[pr.p][z][h].push({c: cl.id, per: pr.per, disc: x.disc, loc: cl.locatie});
+          const k = pr.p + "|" + cl.id;
+          pereche[k] ??= {fx:0, al:0};
+          if(pr.per === "T") pereche[k].fx++; else pereche[k].al++;
+        }
+      }
+    }
+  }
+  return {prof, pereche};
+}
+/* Două prezențe ale aceluiași profesor la aceeași oră sunt compatibile doar dacă sunt în perioade diferite. */
+function compatibile(a, b){ return (a.per === "P1" && b.per === "P2") || (a.per === "P2" && b.per === "P1"); }
+
+/* Statistici R2 și ferestre pentru un orar oarecare */
+function statOrar(orar){
+  const occ = {}, loc = {};
+  state.clase.forEach(c => loc[c.id] = c.locatie);
+  for(const c of Object.keys(orar)) for(const z of ZILE) for(const [h, x] of Object.entries(orar[c]?.[z] || {})) for(const p of (x?.prof || [])){
+    ((occ[p.p] ??= {})[z] ??= {})[h] = 1; ((occ[p.p].loc ??= {})[z] ??= new Set()).add(loc[c]);
+  }
+  let r2 = 0, f = 0;
+  for(const p in occ) for(const z of ZILE){
+    const o = Object.keys(occ[p][z] || {}).map(Number); if(!o.length) continue;
+    f += Math.max(...o) - Math.min(...o) + 1 - o.length;
+    if(occ[p].loc[z].size > 1) r2++;
+  }
+  return {r2, f};
+}
+function oreMutate(a, b){
+  let n = 0;
+  for(const c of Object.keys(a)) for(const z of ZILE){
+    const A = a[c]?.[z] || {}, B = b[c]?.[z] || {};
+    for(const h of new Set([...Object.keys(A), ...Object.keys(B)])) if(JSON.stringify(A[h] || null) !== JSON.stringify(B[h] || null)) n++;
+  }
+  return n;
+}
+function celulaMutata(c, z, h){
+  const v = state.meta.orarAnterior; if(!v || !state.meta.arataMutari) return false;
+  return JSON.stringify(v[c]?.[z]?.[h] || null) !== JSON.stringify(state.orar[c]?.[z]?.[h] || null);
+}
+function cardReorganizare(){
+  if(!PROPUNERE) return "";
+  const acum = statOrar(state.orar), nou = statOrar(PROPUNERE), init = statOrar(DATA_INITIAL.orar);
+  const modificat = JSON.stringify(state.orar) !== JSON.stringify(DATA_INITIAL.orar) && !state.meta.orarAnterior;
+  const aplicat = JSON.stringify(state.orar) === JSON.stringify(PROPUNERE);
+  return `<div class="card"><h3>Reorganizare automată (R2 + R13)</h3>
+  <div class="scroll"><table><tr><th></th><th class="num">Zile în două locații (R2)</th><th class="num">Ferestre (R13)</th></tr>
+  <tr><td>Orarul inițial (din Excel)</td><td class="num">${init.r2}</td><td class="num">${init.f}</td></tr>
+  <tr><td>Orarul reorganizat</td><td class="num"><b>${nou.r2}</b></td><td class="num"><b>${nou.f}</b></td></tr>
+  <tr><td>Orarul din aplicație acum</td><td class="num">${acum.r2}</td><td class="num">${acum.f}</td></tr></table></div>
+  <p class="muted">Ce rămâne la fel: zilele de practică și de specialitate (blocurile de 3+ ore cu același profesor), ora 1 și ziua fără goluri la fiecare clasă (R7), maximul de ore pe zi în fiecare locație, orele fiecărui profesor la fiecare clasă, zilele în care vine fiecare profesor (nimeni nu primește o zi nouă), cel mult 2 ore pe zi din aceeași disciplină de cultură generală (R14), fără dus-întors între locații (R15), cel puțin 15 minute pentru drum (R16), de preferat întâi Șendriceni, apoi Dorohoi (R17). Se mută ${oreMutate(DATA_INITIAL.orar, PROPUNERE)} ore față de orarul inițial.</p>
+  ${aplicat ? `<p class="ok">✓ Orarul reorganizat este aplicat.</p>` : state.meta.orarAnterior ? `<p class="muted">Există o variantă nouă a orarului reorganizat (14.11, cu R14–R17). „Aplică” o pune în locul celei de acum; „Revino” duce tot la orarul de dinaintea reorganizării.</p>` : modificat ? `<p class="rau">Atenție: ai modificat orarul în aplicație. Reorganizarea pornește de la orarul inițial, așa că modificările tale (${oreMutate(DATA_INITIAL.orar, state.orar)} ore) vor fi înlocuite. Le poți readuce cu „Revino la orarul dinainte”.</p>` : ""}
+  <div class="row">
+    ${aplicat ? "" : `<button class="btn" onclick="aplicaReorganizare()">✨ Aplică orarul reorganizat</button>`}
+    ${state.meta.orarAnterior ? `<button class="btn sec" onclick="revinoOrar()">↶ Revino la orarul dinainte</button>
+    <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.arataMutari ? "checked" : ""} onchange="state.meta.arataMutari=this.checked;saveState();render()"> evidențiază orele mutate (galben)</label>` : ""}
+  </div></div>`;
+}
+function aplicaReorganizare(){
+  if(!confirm("Aplici orarul reorganizat? Orarul de acum se păstrează și poți reveni la el oricând.")) return;
+  pushUndo();
+  state.meta.orarAnterior ??= clone(state.orar); // păstrăm orarul de dinaintea primei reorganizări
+  const nou = clone(state.orar);
+  for(const c of Object.keys(PROPUNERE)) if(nou[c]) nou[c] = clone(PROPUNERE[c]);
+  state.orar = nou; state.meta.arataMutari = true;
+  saveState(); render(); toast("Am aplicat orarul reorganizat. Orele mutate sunt marcate cu galben.");
+}
+function revinoOrar(){
+  if(!state.meta.orarAnterior || !confirm("Revii la orarul de dinainte de reorganizare?")) return;
+  pushUndo();
+  state.orar = clone(state.meta.orarAnterior); state.meta.orarAnterior = null;
+  saveState(); render(); toast("Am revenit la orarul de dinainte.");
+}
+
+/* ---------- VERIFICĂRI ---------- */
+const normDisc = t => (t || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9/]/g, "");
+/* O celulă e de cultură generală dacă profesorii ei au la clasă doar ore CG (sau dirigenție). */
+function esteCG(c, x){
+  if(!x.prof?.length) return false;
+  const t = new Set(); state.incadrare.filter(r => r.clasa === c && r.inOrar && x.prof.some(p => p.p === r.p)).forEach(r => t.add(r.tip));
+  return t.size > 0 && [...t].every(k => ["CG","O-CO","O-DIRIG"].includes(k));
+}
+function verifica(){
+  if(cacheVer) return cacheVer;
+  const L = [];
+  const add = (nivel, regula, text, ex = {}) => L.push({nivel, regula, text, ...ex});
+  const I = index();
+  // Clase: R7, maximul de ore pe zi în locație, celule incomplete, total ore (R8)
+  for(const cl of state.clase){
+    const c = cl.id, max = state.locatiiMaxOre[cl.locatie] || {};
+    let total = 0;
+    for(const z of ZILE){
+      const zi = state.orar[c][z] || {};
+      const ore = Object.keys(zi).filter(h => areContinut(zi[h])).map(Number).sort((a,b) => a-b);
+      total += ore.length;
+      if(ore.length && !ore.includes(1)) add("eroare","R7",`${c}, ${z}: nu are ora 1.`,{clasa:c,zi:z,ora:1});
+      if(ore.length) for(let h = 1; h < ore[ore.length-1]; h++) if(!ore.includes(h) && h !== 1) add("eroare","R7",`${c}, ${z}: fereastră la ora ${h}.`,{clasa:c,zi:z,ora:h});
+      if(max[z]) ore.filter(h => h > max[z]).forEach(h => add("eroare","Locație",`${c}, ${z}: ora ${h} depășește maximul de ${max[z]} ore pe zi la ${cl.locatie}.`,{clasa:c,zi:z,ora:h}));
+      // R14: cultură generală – cel mult 2 ore pe zi din aceeași disciplină
+      const nCG = {};
+      for(const h of ore){ const x = zi[h]; if(x.disc && esteCG(c, x)){ const k = normDisc(x.disc); (nCG[k] ??= {n:0, d:x.disc, h:[]}); nCG[k].n++; nCG[k].h.push(h); } }
+      Object.values(nCG).filter(v => v.n > 2).forEach(v => add("eroare","R14",`${c}, ${z}: ${v.n} ore de ${v.d} (orele ${v.h.join(", ")}); la cultura generală sunt maximum 2 pe zi.`,{clasa:c,zi:z,ora:v.h[2]}));
+      for(const h of ore){
+        const x = zi[h];
+        if(x.disc && !x.prof.length) add("eroare","Celulă",`${c}, ${z}, ora ${h}: „${x.disc}” nu are profesor.`,{clasa:c,zi:z,ora:h});
+        if(!x.disc && x.prof.length) add("avertisment","Celulă",`${c}, ${z}, ora ${h}: are profesor, dar nu are disciplină.`,{clasa:c,zi:z,ora:h});
+      }
+    }
+    const inc = incClasa(c);
+    if(Math.abs(inc - total) > 0.5) add("eroare","R8",`${c}: ${total} ore pe săptămână în orar, ${fmt(inc)} în încadrare (diferență ${fmt(total - inc)}).`,{clasa:c});
+  }
+  // Profesori: suprapuneri și locații (R2)
+  for(const [p, zile] of Object.entries(I.prof)){
+    if(!state.incadrare.some(r => r.p === p)) add("eroare","Încadrare",`${p} apare în orar, dar nu are încadrare.`,{prof:p});
+    for(const z of ZILE){
+      const zi = zile[z] || {};
+      const locuri = new Set();
+      for(const h of Object.keys(zi)){
+        const L2 = zi[h]; L2.forEach(x => locuri.add(x.loc));
+        const clase = [...new Set(L2.map(x => x.c))];
+        if(clase.length > 1){
+          let conflict = false, nesigur = false;
+          for(let i = 0; i < L2.length; i++) for(let j = i+1; j < L2.length; j++){
+            if(L2[i].c === L2[j].c) continue;
+            if(compatibile(L2[i], L2[j])) continue;
+            if(L2[i].per === "A" && L2[j].per === "A") nesigur = true; else conflict = true;
+          }
+          if(conflict) add("eroare","Suprapunere",`${p}: ${z}, ora ${h}, e trecut(ă) în același timp la ${clase.join(" și ")}.`,{prof:p,zi:z,ora:h,clasa:clase[0]});
+          else if(nesigur) add("avertisment","Suprapunere",`${p}: ${z}, ora ${h}, apare la ${clase.join(" și ")} cu alternanță nespecificată – verifică perioadele.`,{prof:p,zi:z,ora:h,clasa:clase[0]});
+        }
+      }
+      if(locuri.size > 1) add("avertisment","R2",`${p}: ${z} are ore și la Dorohoi, și la Șendriceni.`,{prof:p,zi:z});
+      const ocupate = Object.keys(zi).filter(h => zi[h].length).map(Number).sort((a, b) => a - b);
+      if(locuri.size > 1){
+        const sec = ocupate.map(h => zi[h][0].loc); let sch = 0;
+        for(let i = 1; i < sec.length; i++) if(sec[i] !== sec[i-1]) sch++;
+        if(sch > 1) add("eroare","R15",`${p}: ${z} merge dus-întors între locații (${sec.map(l => l[0]).join("→")}).`,{prof:p,zi:z});
+        const min = t => t ? (+t.slice(0, 2)) * 60 + (+t.slice(3, 5)) : NaN;
+        for(let i = 1; i < ocupate.length; i++){
+          const la = sec[i-1], lb = sec[i]; if(la === lb) continue;
+          const h1 = ocupate[i-1], h2 = ocupate[i];
+          const sf = min((state.clopot[la]?.[z]?.[h1] || "").slice(6)), st = min((state.clopot[lb]?.[z]?.[h2] || "").slice(0, 5));
+          if(!isNaN(sf) && !isNaN(st) && st - sf < 15) add("eroare","R16",`${p}: ${z}, ${la} ora ${h1} → ${lb} ora ${h2}: ${st - sf < 0 ? "orele se suprapun" : "doar " + (st - sf) + " minute"} pentru drum (trebuie 15).`,{prof:p,zi:z});
+          if(la === "Dorohoi" && lb === "Șendriceni") add("avertisment","R17",`${p}: ${z} merge de la Dorohoi la Șendriceni (de preferat invers).`,{prof:p,zi:z});
+        }
+      }
+      const goluri = [];
+      for(let h = ocupate[0]; h < ocupate[ocupate.length - 1]; h++) if(!ocupate.includes(h)) goluri.push(h);
+      if(goluri.length) add("avertisment","R13",`${p}: ${z} are ${goluri.length === 1 ? "fereastră la ora " + goluri[0] : goluri.length + " ferestre (orele " + goluri.join(", ") + ")"}${locuri.size > 1 ? " – zi cu ambele locații" : ""}.`,{prof:p,zi:z,ferestre:goluri.length});
+    }
+  }
+  // Perechi profesor–clasă: orele din orar față de încadrare
+  const chei = new Set(Object.keys(I.pereche));
+  state.incadrare.filter(r => r.inOrar && clasa(r.clasa)).forEach(r => chei.add(r.p + "|" + r.clasa));
+  for(const k of chei){
+    const [p, c] = k.split("|");
+    const inc = incPereche(p, c), o = I.pereche[k] || {fx:0, al:0};
+    let ok;
+    if(o.al === 0) ok = Math.abs(inc - o.fx) < 0.35 && Math.round(inc) === o.fx;
+    else ok = inc >= o.fx - 0.01 && inc <= o.fx + o.al + 0.01;
+    if(ok) continue;
+    if(inc === 0) add("eroare","Încadrare",`${p} are ${o.fx + o.al} ore în orar la ${c}, dar nu are ore la această clasă în încadrare.`,{prof:p,clasa:c});
+    else if(o.fx + o.al === 0) add("avertisment","Încadrare",`${p} are în încadrare ${fmt(inc)} ore/săpt. la ${c}, dar nu apare în orar la această clasă.`,{prof:p,clasa:c});
+    else add("avertisment","Încadrare",`${p} la ${c}: încadrare ${fmt(inc)} ore/săpt., orar ${o.fx}${o.al ? " + " + o.al + " în alternanță" : ""}.`,{prof:p,clasa:c});
+  }
+  cacheVer = L;
+  return L;
+}
+function nrVer(nivel, f){ return verifica().filter(x => x.nivel === nivel && (!f || f(x))).length; }
+function problemeCelula(c, z, h){
+  const L = verifica().filter(x => x.clasa === c && x.zi === z && String(x.ora) === String(h));
+  if(L.some(x => x.nivel === "eroare")) return "err";
+  if(L.length) return "warn";
+  return "";
+}
+
+/* ---------- navigare ---------- */
+function renderNav(){
+  const e = nrVer("eroare"), a = nrVer("avertisment");
+  $("#nav").innerHTML = TABURI.filter(t => !state.meta.taburiAscunse.includes(t.id) || t.id === "date").map(t =>
+    `<button class="${tab === t.id ? "activ" : ""}" onclick="mergiLa('${t.id}')">${t.i} ${t.t}${t.id === "ver" ? ` <span class="badge">${e}</span>${a ? ` <span class="badge galben">${a}</span>` : ""}` : ""}</button>`).join("");
+}
+function mergiLa(t, sus = true){
+  tab = t; document.querySelector("nav").classList.remove("deschis");
+  render(); if(sus) window.scrollTo(0, 0);
+}
+function render(){
+  const y = window.scrollY;
+  renderNav();
+  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
+  $("#main").innerHTML = bannerBackup() + f();
+  window.scrollTo(0, y);
+}
+function bannerBackup(){
+  const u = state.meta.ultimBackup;
+  const zile = u ? (Date.now() - u) / 86400000 : 999;
+  if(zile < 7) return "";
+  return `<div class="banner">💾 <span class="grow">${u ? `Ultimul backup a fost acum ${Math.floor(zile)} zile.` : "Nu ai făcut încă niciun backup."} Salvează o copie, ca să nu pierzi modificările.</span><button class="btn mic" onclick="backupJSON()">Fă backup acum</button></div>`;
+}
+
+/* ---------- celule (afișare) ---------- */
+function htmlProfi(x){
+  return (x.prof || []).map(p => `${esc(scurt(p.p))}${p.per !== "T" ? `<span class="per">${p.per === "A" ? "~" : p.per}</span>` : ""}`).join(", ");
+}
+function grilaClasa(c, opt = {}){
+  const cl = clasa(c), zileOre = ZILE.map(z => Object.keys(state.orar[c][z] || {}).map(Number));
+  const maxH = Math.max(6, ...zileOre.flat(), ...Object.values(state.locatiiMaxOre[cl.locatie] || {7:7}));
+  let h = `<div class="scroll"><table class="grid"><tr><th>Ora</th>${ZILE.map(z => `<th>${z}</th>`).join("")}</tr>`;
+  for(let o = 1; o <= maxH; o++){
+    h += `<tr><td class="ora"><b>${o}</b>${esc(state.clopot[cl.locatie]?.Luni?.[o] || "")}</td>`;
+    for(const z of ZILE){
+      const x = state.orar[c][z][o];
+      const cls = ["cel"]; if(!areContinut(x)) cls.push("gol"); if(!opt.print && celulaMutata(c, z, o)) cls.push("mutat");
+      if(!opt.print){ const p = problemeCelula(c, z, o); if(p) cls.push(p); if(swapSel && swapSel.c === c && swapSel.z === z && String(swapSel.h) === String(o)) cls.push("sel"); }
+      const on = opt.print ? "" : `onclick="clickCelula('${c}','${z}',${o})"`;
+      h += `<td class="${cls.join(" ")}" ${on}>${areContinut(x) ? `<div class="disc">${esc(x.disc) || "<i class='rau'>fără disciplină</i>"}</div><div class="prof">${htmlProfi(x) || "<span class='rau'>fără profesor</span>"}</div>` : ""}</td>`;
+    }
+    h += "</tr>";
+  }
+  return h + "</table></div>";
+}
+function grilaProf(p, opt = {}){
+  const I = index(), zile = I.prof[p] || {};
+  let maxH = 6; ZILE.forEach(z => Object.keys(zile[z] || {}).forEach(h => maxH = Math.max(maxH, +h)));
+  let h = `<div class="scroll"><table class="grid"><tr><th>Ora</th>${ZILE.map(z => `<th>${z}</th>`).join("")}</tr>`;
+  for(let o = 1; o <= maxH; o++){
+    h += `<tr><td class="ora"><b>${o}</b></td>`;
+    for(const z of ZILE){
+      const L = (zile[z] || {})[o] || [];
+      const clase = [...new Set(L.map(x => x.c))];
+      let cls = "cel" + (L.length ? " loc-" + L[0].loc : " gol");
+      if(!opt.print && clase.length > 1 && !(L.length === 2 && compatibile(L[0], L[1]))) cls += " err";
+      const on = (!opt.print && L.length) ? `onclick="deschideClasa('${L[0].c}')"` : "";
+      h += `<td class="${cls}" ${on}>${L.map(x => `<div class="disc">${esc(x.c)}${x.per !== "T" ? `<span class="per">${x.per === "A" ? "~" : x.per}</span>` : ""}</div><div class="prof">${esc(x.disc)} · ${esc(x.loc)}${opt.print ? " · " + esc(state.clopot[x.loc]?.[z]?.[o] || "") : ""}</div>`).join("")}</td>`;
+    }
+    h += "</tr>";
+  }
+  return h + "</table></div>";
+}
+function legenda(){ return `<p class="muted" style="font-size:13px">Perioade: <span class="per">P1</span> prima perioadă, <span class="per">P2</span> a doua perioadă, <span class="per">~</span> alternanță nespecificată. Chenar roșu = eroare, chenar galben = avertisment.${state.meta.orarAnterior && state.meta.arataMutari ? " Fond galben = oră mutată la reorganizare." : ""}</p>`; }
+
+/* ---------- TAB: Azi ---------- */
+function vAzi(){
+  const d = new Date().getDay();
+  if(aziZi === null) aziZi = (d >= 1 && d <= 5) ? ZILE[d-1] : "Luni";
+  const titlu = (d >= 1 && d <= 5 && ZILE[d-1] === aziZi) ? `Azi, ${aziZi.toLowerCase()} ${azi()}` : aziZi;
+  let h = `<h2>${esc(titlu)}</h2><div class="card row">${ZILE.map(z => `<button class="btn ${z === aziZi ? "" : "sec"} mic" onclick="aziZi='${z}';render()">${z}</button>`).join("")}</div>`;
+  for(const loc of ["Șendriceni","Dorohoi"]){
+    const cls = state.clase.filter(c => c.locatie === loc);
+    const max = state.locatiiMaxOre[loc][aziZi] || 7;
+    h += `<div class="card"><h3>${loc} <span class="tag ${loc}">${cls.length} clase</span></h3><div class="scroll"><table class="grid"><tr><th>Ora</th>${cls.map(c => `<th>${c.id}</th>`).join("")}</tr>`;
+    for(let o = 1; o <= max; o++){
+      h += `<tr><td class="ora"><b>${o}</b>${esc(state.clopot[loc]?.[aziZi]?.[o] || "")}</td>`;
+      for(const c of cls){
+        const x = state.orar[c.id][aziZi][o];
+        const p = problemeCelula(c.id, aziZi, o);
+        h += `<td class="cel ${areContinut(x) ? "" : "gol"} ${p} ${celulaMutata(c.id, aziZi, o) ? "mutat" : ""}" onclick="clickCelula('${c.id}','${aziZi}',${o})">${areContinut(x) ? `<div class="disc">${esc(x.disc)}</div><div class="prof">${htmlProfi(x)}</div>` : ""}</td>`;
+      }
+      h += "</tr>";
+    }
+    h += "</table></div></div>";
+  }
+  return h + legenda();
+}
+
+/* ---------- TAB: Dashboard ---------- */
+function vDash(){
+  const e = nrVer("eroare"), a = nrVer("avertisment");
+  const I = index();
+  const profOrar = Object.keys(I.prof).length;
+  let totOrar = 0, totInc = 0;
+  const rows = state.clase.map(cl => {
+    let o = 0; ZILE.forEach(z => o += Object.values(state.orar[cl.id][z]).filter(areContinut).length);
+    const i = incClasa(cl.id); totOrar += o; totInc += i;
+    const ne = nrVer("eroare", x => x.clasa === cl.id), na = nrVer("avertisment", x => x.clasa === cl.id);
+    return `<tr class="click" onclick="deschideClasa('${cl.id}')"><td><b>${cl.id}</b></td><td>${esc(cl.calificare)}</td><td><span class="tag ${cl.locatie}">${cl.locatie}</span></td><td class="num">${o}</td><td class="num">${fmt(i)}</td><td class="num ${Math.abs(o-i) > 0.5 ? "rau" : "ok"}">${Math.abs(o-i) > 0.5 ? fmt(o-i) : "✓"}</td><td>${ne ? `<span class="badge">${ne}</span>` : ""} ${na ? `<span class="badge galben">${na}</span>` : ""}</td></tr>`;
+  }).join("");
+  return `<h2>Dashboard</h2>
+  <div class="kpis">
+    <div class="kpi"><b>${state.clase.length}</b><span>clase în orar</span></div>
+    <div class="kpi"><b>${profOrar}</b><span>profesori cu ore în orar</span></div>
+    <div class="kpi"><b>${totOrar}</b><span>ore pe săptămână în orar</span></div>
+    <div class="kpi"><b>${fmt(totInc)}</b><span>ore pe săptămână în încadrare</span></div>
+    <div class="kpi ${e ? "rau" : "bun"}"><b>${e}</b><span>erori</span></div>
+    <div class="kpi ${a ? "" : "bun"}"><b>${a}</b><span>avertismente</span></div>
+    <div class="kpi"><b>${nrVer("avertisment", x => x.regula === "R2")}</b><span>zile în două locații (R2)</span></div>
+    <div class="kpi"><b>${verifica().filter(x => x.regula === "R13").reduce((s, x) => s + x.ferestre, 0)}</b><span>ferestre la profesori (R13)</span></div>
+  </div>
+  <div class="card"><h3>Pe clase</h3><div class="scroll"><table><tr><th>Clasa</th><th>Calificare</th><th>Locație</th><th class="num">Ore orar</th><th class="num">Ore încadrare</th><th class="num">Diferență</th><th>Probleme</th></tr>${rows}</table></div></div>`;
+}
+
+/* ---------- TAB: Orar pe clase ---------- */
+function deschideClasa(c){ selClasa = c; mergiLa("clase"); }
+function vClase(){
+  selClasa ??= state.clase[0].id;
+  const cl = clasa(selClasa);
+  let o = 0; ZILE.forEach(z => o += Object.values(state.orar[cl.id][z]).filter(areContinut).length);
+  const inc = incClasa(cl.id);
+  const prob = verifica().filter(x => x.clasa === cl.id);
+  const incRows = state.incadrare.filter(r => r.clasa === cl.id).sort((a,b) => ro(a.p, b.p));
+  return `<h2>Orar pe clase</h2>
+  <div class="card row">
+    <select onchange="selClasa=this.value;swapSel=null;render()">${state.clase.map(c => `<option ${c.id === selClasa ? "selected" : ""}>${c.id}</option>`).join("")}</select>
+    <span class="tag ${cl.locatie}">${cl.locatie}</span>
+    <span class="muted grow">${esc(cl.calificare)} · diriginte ${esc(cl.diriginte)} · ${cl.saptamani} săptămâni</span>
+    <span>Orar <b>${o}</b> · încadrare <b>${fmt(inc)}</b> ore/săpt.</span>
+  </div>
+  <div class="card row">
+    <button class="btn ${swapMode ? "acc" : "sec"} mic" onclick="swapMode=!swapMode;swapSel=null;render()">↔ ${swapMode ? "Mod mutare PORNIT – atinge două celule" : "Mută / schimbă ore"}</button>
+    <button class="btn sec mic" onclick="anuleaza()" ${undoStack.length ? "" : "disabled"}>↶ Anulează ultima modificare</button>
+    <span class="grow"></span>
+    <button class="btn sec mic" onclick="tiparesteClase([selClasa])">🖨 Tipărește</button>
+    <button class="btn sec mic" onclick="tiparesteClase([selClasa],true)">PDF</button>
+  </div>
+  ${grilaClasa(cl.id)}${legenda()}
+  ${prob.length ? `<div class="card"><h3>Probleme la ${cl.id}</h3>${prob.map(itemVer).join("")}</div>` : `<div class="card ok">✓ Nicio problemă la ${cl.id}.</div>`}
+  <div class="card"><h3>Încadrarea clasei ${cl.id}</h3><div class="scroll"><table><tr><th>Profesor</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/an</th><th class="num">Ore/săpt.</th><th>În orar</th></tr>
+  ${incRows.map(r => `<tr><td>${esc(r.p)}</td><td>${esc(r.disciplina)}</td><td>${esc(r.tip)}</td><td class="num">${r.oreAn}</td><td class="num">${fmt(oreSapt(r))}</td><td>${r.inOrar ? "da" : `<span class="muted">${esc(r.motiv || "nu")}</span>`}</td></tr>`).join("")}</table></div></div>`;
+}
+function clickCelula(c, z, h){
+  if(tab === "clase" && swapMode){
+    if(!swapSel){ swapSel = {c, z, h}; render(); toast("Acum atinge celula cu care schimbi."); return; }
+    if(swapSel.c === c && swapSel.z === z && String(swapSel.h) === String(h)){ swapSel = null; render(); return; }
+    pushUndo();
+    const A = state.orar[swapSel.c][swapSel.z][swapSel.h], B = state.orar[c][z][h];
+    if(B) state.orar[swapSel.c][swapSel.z][swapSel.h] = B; else delete state.orar[swapSel.c][swapSel.z][swapSel.h];
+    if(A) state.orar[c][z][h] = A; else delete state.orar[c][z][h];
+    toast(`Am schimbat ${swapSel.z} ora ${swapSel.h} cu ${z} ora ${h}.`);
+    swapSel = null; saveState(); render(); return;
+  }
+  editCelula(c, z, h);
+}
+
+/* ---------- editare celulă ---------- */
+let editCtx = null;
+function editCelula(c, z, h){
+  const x = clone(state.orar[c][z][h] || {disc:"", prof:[]});
+  editCtx = {c, z, h, x};
+  renderEdit();
+  $("#modal").classList.add("deschis");
+}
+function renderEdit(){
+  const {c, z, h, x} = editCtx;
+  const incC = state.incadrare.filter(r => r.clasa === c && r.inOrar);
+  const discs = [...new Set(incC.map(r => r.disciplina))].sort(ro);
+  const profC = [...new Set(incC.map(r => r.p))].sort(ro);
+  const altii = state.profesori.filter(p => !profC.includes(p));
+  const opt = sel => `<option value="">– alege –</option><optgroup label="Cu ore la ${c}">${profC.map(p => `<option ${p === sel ? "selected" : ""}>${esc(p)}</option>`).join("")}</optgroup><optgroup label="Ceilalți">${altii.map(p => `<option ${p === sel ? "selected" : ""}>${esc(p)}</option>`).join("")}</optgroup>`;
+  if(!x.prof.length) x.prof.push({p:"", per:"T"});
+  const ocupati = profiOcupati(c, z, h);
+  $("#modalCont").innerHTML = `<h3>${c} · ${z} · ora ${h}</h3>
+  <label>Disciplina</label>
+  <input id="edDisc" list="dlDisc" value="${esc(x.disc)}" style="width:100%" placeholder="de exemplu MATEMATICA sau APLICAȚII">
+  <datalist id="dlDisc">${discs.map(d => `<option value="${esc(d)}">`).join("")}<option value="APLICAȚII"></datalist>
+  <label style="margin-top:12px">Profesori și perioade</label>
+  ${x.prof.map((p, i) => `<div class="pr-linie"><select onchange="editCtx.x.prof[${i}].p=this.value;renderEdit()">${opt(p.p)}</select>
+     <select onchange="editCtx.x.prof[${i}].per=this.value">${Object.entries(PERIOADE).map(([k,v]) => `<option value="${k}" ${p.per === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+     <button class="btn sec mic" onclick="editCtx.x.disc=$('#edDisc').value;editCtx.x.prof.splice(${i},1);renderEdit()">✕</button>
+     ${p.p && ocupati[p.p] ? `<div class="rau" style="width:100%;font-size:13px">⚠ ${esc(p.p)} e trecut(ă) la aceeași oră și la ${esc(ocupati[p.p].join(", "))}.</div>` : ""}</div>`).join("")}
+  <button class="btn sec mic" onclick="editCtx.x.disc=$('#edDisc').value;editCtx.x.prof.push({p:'',per:'T'});renderEdit()">+ profesor</button>
+  <h3>Încadrarea la ${c}</h3>
+  <div style="max-height:180px;overflow:auto;font-size:13px">${incC.sort((a,b) => ro(a.p,b.p)).map(r => `<div>${esc(r.p)} – ${esc(r.disciplina)} <span class="muted">(${fmt(oreSapt(r))} ore/săpt.)</span></div>`).join("")}</div>
+  <div class="row" style="margin-top:16px"><button class="btn" onclick="salveazaCelula()">Salvează</button><button class="btn rosu" onclick="golesteCelula()">Golește celula</button><span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+}
+function profiOcupati(c, z, h){
+  const r = {};
+  for(const cl of state.clase){ if(cl.id === c) continue;
+    const x = state.orar[cl.id][z][h]; if(!x) continue;
+    for(const p of x.prof) (r[p.p] ??= []).push(cl.id);
+  }
+  return r;
+}
+function salveazaCelula(){
+  const {c, z, h, x} = editCtx;
+  x.disc = $("#edDisc").value.trim();
+  x.prof = x.prof.filter(p => p.p);
+  pushUndo();
+  if(!x.disc && !x.prof.length) delete state.orar[c][z][h]; else state.orar[c][z][h] = x;
+  saveState(); inchideModal(); render(); toast("Salvat.");
+}
+function golesteCelula(){
+  const {c, z, h} = editCtx;
+  if(!confirm(`Golești ${c}, ${z}, ora ${h}?`)) return;
+  pushUndo(); delete state.orar[c][z][h]; saveState(); inchideModal(); render(); toast("Celula a fost golită.");
+}
+function inchideModal(){ $("#modal").classList.remove("deschis"); editCtx = null; }
+
+/* ---------- TAB: Orar pe profesori ---------- */
+function deschideProf(p){ selProf = p; mergiLa("prof"); }
+function vProf(){
+  const I = index();
+  const cuOre = state.profesori.filter(p => I.prof[p]);
+  selProf ??= cuOre[0];
+  const p = selProf;
+  let fx = 0, al = 0;
+  Object.entries(I.pereche).filter(([k]) => k.startsWith(p + "|")).forEach(([k,v]) => { fx += v.fx; al += v.al; });
+  const incR = state.incadrare.filter(r => r.p === p);
+  const incOrar = incR.filter(r => r.inOrar && clasa(r.clasa)).reduce((s,r) => s + oreSapt(r), 0);
+  const prob = verifica().filter(x => x.prof === p);
+  return `<h2>Orar pe profesori</h2>
+  <div class="card row">
+    <select onchange="selProf=this.value;render()"><optgroup label="Cu ore în orar">${cuOre.map(x => `<option ${x === p ? "selected" : ""}>${esc(x)}</option>`).join("")}</optgroup><optgroup label="Fără ore în acest orar">${state.profesori.filter(x => !I.prof[x]).map(x => `<option ${x === p ? "selected" : ""}>${esc(x)}</option>`).join("")}</optgroup></select>
+    <span class="grow"></span>
+    <button class="btn sec mic" onclick="tiparesteProf([selProf])">🖨 Orar individual</button>
+    <button class="btn sec mic" onclick="tiparesteProf([selProf],true)">PDF</button>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b>${fx}${al ? "+" + al : ""}</b><span>ore în orar${al ? " (+ în alternanță)" : ""}</span></div>
+    <div class="kpi"><b>${fmt(incOrar)}</b><span>ore/săpt. în încadrare (în orar)</span></div>
+    <div class="kpi"><b>${fmt(norma(p))}</b><span>norme (R10, tot anul)</span></div>
+  </div>
+  ${grilaProf(p)}${legenda()}
+  ${prob.length ? `<div class="card"><h3>Probleme</h3>${prob.map(itemVer).join("")}</div>` : `<div class="card ok">✓ Nicio problemă la ${esc(p)}.</div>`}
+  <div class="card"><h3>Încadrarea</h3><div class="scroll"><table><tr><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/an</th><th class="num">Ore/săpt.</th><th>În orar</th></tr>
+  ${incR.map(r => `<tr><td>${esc(r.clasa)}</td><td>${esc(r.disciplina)}</td><td>${esc(r.tip)}</td><td class="num">${r.oreAn}</td><td class="num">${clasa(r.clasa) ? fmt(oreSapt(r)) : "–"}</td><td>${r.inOrar ? "da" : `<span class="muted">${esc(r.motiv || "nu")}</span>`}</td></tr>`).join("")}</table></div></div>`;
+}
+
+/* ---------- TAB: Planșa (ca foaia ORAR SENDRICENI / ORAR DOROHOI din Excel) ---------- */
+const codClasa = c => c; // cu spațiu, ca „XII I” să nu se confunde cu „XIII”
+function codProf(x){ const k = codClasa(x.c); return x.per === "P1" ? k + "/" : x.per === "P2" ? "/" + k : x.per === "A" ? k + "*" : k; }
+function plansaModel(loc){
+  const clase = state.clase.filter(c => c.locatie === loc);
+  const I = index();
+  const ids = new Set(clase.map(c => c.id));
+  const profi = state.profesori.filter(p => ZILE.some(z => Object.values((I.prof[p] || {})[z] || {}).some(L => L.some(x => ids.has(x.c)))));
+  const zile = ZILE.map(z => {
+    const max = state.locatiiMaxOre[loc]?.[z] || 7;
+    const ore = [];
+    for(let h = 1; h <= max; h++) ore.push({h, timp:(state.clopot[loc]?.[z]?.[h] || "").replace(/:/g, "."),
+      clase: clase.map(c => state.orar[c.id][z][h] || null),
+      profi: profi.map(p => ((I.prof[p] || {})[z] || {})[h] || [])});
+    return {z, ore};
+  });
+  return {loc, clase, profi, zile};
+}
+/* Celula unui profesor în planșă: locația (culoare) și pachetul (cu cine face ora împreună). */
+function infoProfCel(p, z, h, L){
+  if(!L.length) return {cls:"", parteneri:[]};
+  const parteneri = [];
+  for(const x of L){
+    const cel = state.orar[x.c]?.[z]?.[h];
+    (cel?.prof || []).filter(q => q.p !== p).forEach(q => { const n = q.p.split(" ")[0]; if(!parteneri.includes(n)) parteneri.push(n); });
+  }
+  const locuri = new Set(L.map(x => x.loc));
+  const cls = parteneri.length ? "pachet" : locuri.has("Dorohoi") && !locuri.has("Șendriceni") ? "locD" : "locS";
+  return {cls, parteneri};
+}
+function htmlPlansa(loc, opt = {}){
+  const M = plansaModel(loc), cl = plansaBloc !== "profesori" || opt.print, pr = plansaBloc !== "clase" || opt.print;
+  const nC = M.clase.length, nP = M.profi.length;
+  const spanTit = (cl ? 3 + nC : 0) + (cl && pr ? 1 : 0) + (pr ? 3 + nP : 0);
+  let h = `<table class="plansa"><tr><td class="tit" colspan="${spanTit}"><span style="float:right">${esc(loc.toUpperCase())}</span>LICEUL TEHNOLOGIC „ALEXANDRU VLAHUȚĂ” ȘENDRICENI &nbsp;·&nbsp; ORAR ${esc(state.an || "2026-2027")}</td></tr>`;
+  // antet: 3 rânduri
+  const antet = [["CLASA", c => `<th class="cl">${esc(c.id)}</th>`], ["CALIFICARE / SPECIALIZARE", c => `<th class="hd">${esc(c.calificare.toUpperCase())}</th>`], ["ORELE", c => `<th class="hd">${esc((c.diriginte || "").toUpperCase())}</th>`]];
+  antet.forEach(([lab, f], i) => {
+    h += "<tr>";
+    if(cl){ if(i === 0) h += `<th class="zi" rowspan="3">ZIUA</th><th class="nr" rowspan="3"></th>`; h += `<th class="lab">${lab}</th>` + M.clase.map(f).join(""); }
+    if(cl && pr && i === 0) h += `<td class="gap" rowspan="${3 + M.zile.reduce((s,z) => s + z.ore.length, 0)}"></td>`;
+    if(pr){ if(i === 0) h += `<th class="zi" rowspan="3">ZIUA</th><th class="nr" rowspan="3"></th>`; h += `<th class="lab">${lab}</th>`; if(i === 0) h += M.profi.map(p => `<th class="pn" rowspan="3">${esc(p.toUpperCase())}</th>`).join(""); }
+    h += "</tr>";
+  });
+  for(const d of M.zile){
+    d.ore.forEach((o, j) => {
+      h += `<tr class="${j === 0 ? "inc-zi" : ""}">`;
+      const ziCel = j === 0 ? `<th class="zi" rowspan="${d.ore.length}">${d.z.toUpperCase()}</th>` : "";
+      if(cl){
+        h += ziCel + `<td class="nr">${o.h}</td><td class="tm">${esc(o.timp)}</td>`;
+        h += o.clase.map((x, k) => {
+          const c = M.clase[k].id, pb = opt.print ? "" : problemeCelula(c, d.z, o.h);
+          const txt = areContinut(x) ? `${esc(x.disc)}${opt.cuProf ? `<small>${(x.prof || []).map(p => esc(scurt(p.p)) + (p.per !== "T" ? " " + (p.per === "A" ? "~" : p.per) : "")).join(", ")}</small>` : ""}` : "";
+          return `<td class="s ${areContinut(x) ? "" : "gol"} ${pb} ${!opt.print && celulaMutata(c, d.z, o.h) ? "mutat" : ""}" ${opt.print ? "" : `onclick="editCelula('${c}','${d.z}',${o.h})"`}>${txt}</td>`;
+        }).join("");
+      }
+      if(pr){
+        h += ziCel + `<td class="nr">${o.h}</td><td class="tm">${esc(o.timp)}</td>`;
+        h += o.profi.map((L, k) => { const inf = infoProfCel(M.profi[k], d.z, o.h, L);
+          return `<td class="t ${inf.cls} ${L.some(x => x.per !== "T") ? "alt" : ""}" title="${esc(L.map(x => x.c + " – " + x.disc + " (" + x.loc + ")").join("; "))}${inf.parteneri.length ? " · pachet cu " + esc(inf.parteneri.join(", ")) : ""}">${L.map(codProf).join(" ")}${inf.parteneri.length ? `<small>${esc(inf.parteneri.join(", "))}</small>` : ""}</td>`; }).join("");
+      }
+      h += "</tr>";
+    });
+  }
+  return h + "</table>";
+}
+let plansaCuProf = false;
+function vPlansa(){
+  return `<h2>Planșa (ca în Excel)</h2>
+  <div class="card row">
+    ${["Șendriceni","Dorohoi"].map(l => `<button class="btn ${l === plansaLoc ? "" : "sec"} mic" onclick="plansaLoc='${l}';render()">${l}</button>`).join("")}
+    <span style="width:12px"></span>
+    ${[["ambele","Clase + profesori"],["clase","Doar clasele"],["profesori","Doar profesorii"]].map(([k,t]) => `<button class="btn ${k === plansaBloc ? "acc" : "sec"} mic" onclick="plansaBloc='${k}';render()">${t}</button>`).join("")}
+    <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${plansaCuProf ? "checked" : ""} onchange="plansaCuProf=this.checked;render()"> numele profesorilor în celule</label>
+    <span class="grow"></span>
+    <button class="btn sec mic" onclick="tiparestePlansa(plansaLoc)">🖨 Tipărește planșa</button>
+    <button class="btn sec mic" onclick="tiparestePlansa(plansaLoc,true)">PDF</button>
+  </div>
+  <p class="muted" style="font-size:13px">Atingi o celulă de clasă ca s-o modifici. În partea profesorilor: „IX F/” = prima perioadă, „/IX F” = a doua perioadă, „IX F*” = alternanță.</p>
+  <p class="leg-plansa"><span style="background:#A9D08E">oră la Șendriceni</span><span style="background:#9BC2E6">oră la Dorohoi</span><span style="background:#F4B084">pachet – dedesubt, cu cine</span></p>
+  <div class="scroll card" style="padding:8px">${htmlPlansa(plansaLoc, {cuProf:plansaCuProf})}</div>`;
+}
+function tiparestePlansa(loc, pdf){
+  const st = document.createElement("style"); st.id = "pagPlansa"; st.textContent = "@page{size:A3 landscape;margin:6mm}";
+  document.head.appendChild(st);
+  window.addEventListener("afterprint", () => st.remove(), {once:true});
+  tipareste(`<div class="pagina">${htmlPlansa(loc, {print:true, cuProf:plansaCuProf})}</div>`, pdf);
+}
+
+/* ---------- TAB: Încadrare ---------- */
+function vInc(){
+  const f = filtruInc, t = f.text.toLowerCase();
+  const rows = state.incadrare.map((r, i) => ({r, i})).filter(({r}) =>
+    (!f.p || r.p === f.p) && (!f.c || r.clasa === f.c) && (!f.doarOrar || r.inOrar) &&
+    (!t || (r.p + " " + r.disciplina + " " + r.clasa).toLowerCase().includes(t)));
+  const clase = [...new Set(state.incadrare.map(r => r.clasa))];
+  return `<h2>Încadrare</h2>
+  <div class="card row">
+    <select onchange="filtruInc.p=this.value;render()"><option value="">Toți profesorii</option>${state.profesori.map(p => `<option ${p === f.p ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
+    <select onchange="filtruInc.c=this.value;render()"><option value="">Toate clasele</option>${clase.map(c => `<option ${c === f.c ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+    <input placeholder="Caută…" value="${esc(f.text)}" onchange="filtruInc.text=this.value;render()">
+    <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${f.doarOrar ? "checked" : ""} onchange="filtruInc.doarOrar=this.checked;render()"> doar ore în orar</label>
+    <span class="grow"></span><button class="btn mic" onclick="editInc(-1)">+ rând</button>
+  </div>
+  <p class="muted">${rows.length} rânduri. Ore/săpt. = ore pe an ÷ săptămânile clasei. Rândurile „nu” (stagiu, conducere, Ghilea) nu intră în verificarea orarului.</p>
+  <div class="card scroll"><table><tr><th>Profesor</th><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/an</th><th class="num">Ore/săpt.</th><th>În orar</th><th></th></tr>
+  ${rows.map(({r, i}) => `<tr><td>${esc(r.p)}</td><td>${esc(r.clasa)}</td><td>${esc(r.disciplina)}</td><td>${esc(r.tip)}</td><td class="num">${r.oreAn}</td><td class="num">${clasa(r.clasa) ? fmt(oreSapt(r)) : "–"}</td><td>${r.inOrar ? "da" : `<span class="muted">${esc(r.motiv || "nu")}</span>`}</td><td><button class="btn sec mic" onclick="editInc(${i})">✎</button></td></tr>`).join("")}</table></div>`;
+}
+function editInc(i){
+  const r = i >= 0 ? state.incadrare[i] : {p:"", clasa:selClasa || "", disciplina:"", tip:"CG", oreAn:0, inOrar:true, motiv:""};
+  $("#modalCont").innerHTML = `<h3>${i >= 0 ? "Modifică rândul" : "Rând nou"} în încadrare</h3>
+  <label>Profesor</label><input id="iP" list="dlP" value="${esc(r.p)}" style="width:100%"><datalist id="dlP">${state.profesori.map(p => `<option value="${esc(p)}">`).join("")}</datalist>
+  <div class="row" style="margin-top:8px"><div><label>Clasa</label><input id="iC" value="${esc(r.clasa)}" style="width:110px"></div>
+  <div><label>Tip</label><select id="iT">${["CG","DSP","PIP","O-CO","O-DIRIG"].map(t => `<option ${t === r.tip ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+  <div><label>Ore pe an</label><input id="iO" type="number" value="${r.oreAn}" style="width:110px"></div></div>
+  <label style="margin-top:8px">Disciplina</label><input id="iD" value="${esc(r.disciplina)}" style="width:100%">
+  <label style="display:flex;gap:6px;align-items:center;margin-top:10px"><input type="checkbox" id="iIn" ${r.inOrar ? "checked" : ""}> intră în orarul săptămânal (nu e stagiu sau conducere)</label>
+  <div class="row" style="margin-top:16px"><button class="btn" onclick="salveazaInc(${i})">Salvează</button>${i >= 0 ? `<button class="btn rosu" onclick="stergeInc(${i})">Șterge rândul</button>` : ""}<span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+  $("#modal").classList.add("deschis");
+}
+function salveazaInc(i){
+  const r = {p:$("#iP").value.trim(), clasa:$("#iC").value.trim().toUpperCase().replace(/^(XII|XI|IX|X)\s*([A-Z])$/, "$1 $2"), disciplina:$("#iD").value.trim(), tip:$("#iT").value, oreAn:+$("#iO").value || 0, inOrar:$("#iIn").checked};
+  if(!r.p || !r.clasa){ toast("Completează profesorul și clasa."); return; }
+  r.motiv = r.inOrar ? "" : (clasa(r.clasa) ? "stagiu / practică comasată" : "Ghilea / gimnaziu");
+  if(i >= 0) state.incadrare[i] = {...state.incadrare[i], ...r}; else state.incadrare.push(r);
+  if(!state.profesori.includes(r.p)){ state.profesori.push(r.p); state.profesori.sort(ro); }
+  saveState(); inchideModal(); render(); toast("Încadrarea a fost salvată.");
+}
+function stergeInc(i){
+  if(!confirm("Ștergi definitiv rândul din încadrare?")) return;
+  state.incadrare.splice(i, 1); saveState(); inchideModal(); render(); toast("Rândul a fost șters.");
+}
+
+/* ---------- TAB: Verificări ---------- */
+function itemVer(x){
+  const merge = x.clasa ? `deschideClasa('${x.clasa}')` : (x.prof ? `deschideProf('${esc(x.prof)}')` : "");
+  return `<div class="item niv-${x.nivel}"><span class="badge ${x.nivel === "eroare" ? "" : "galben"}">${esc(x.regula)}</span><span class="t">${esc(x.text)}</span>${merge ? `<button class="btn sec mic" onclick="${merge}">Vezi</button>` : ""}${x.prof && x.clasa ? `<button class="btn sec mic" onclick="deschideProf('${esc(x.prof)}')">Profesor</button>` : ""}</div>`;
+}
+function vVer(){
+  const L = verifica(), e = nrVer("eroare"), a = nrVer("avertisment");
+  const grupe = {};
+  L.filter(x => filtruVer[x.nivel]).forEach(x => (grupe[x.regula] ??= []).push(x));
+  return `<h2>Verificări</h2>
+  <div class="kpis"><div class="kpi ${e ? "rau" : "bun"}"><b>${e}</b><span>erori</span></div><div class="kpi ${a ? "" : "bun"}"><b>${a}</b><span>avertismente</span></div>
+  <div class="kpi"><b>${nrVer("avertisment", x => x.regula === "R2")}</b><span>zile în două locații (R2)</span></div>
+  <div class="kpi"><b>${verifica().filter(x => x.regula === "R13").reduce((s, x) => s + x.ferestre, 0)}</b><span>ferestre la profesori (R13)</span></div></div>
+  ${cardReorganizare()}
+  <div class="card row">
+    <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${filtruVer.eroare ? "checked" : ""} onchange="filtruVer.eroare=this.checked;render()"> erori</label>
+    <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${filtruVer.avertisment ? "checked" : ""} onchange="filtruVer.avertisment=this.checked;render()"> avertismente</label>
+  </div>
+  ${Object.keys(grupe).length ? Object.entries(grupe).map(([r, xs]) => `<div class="card"><h3>${esc(r)} <span class="muted">(${xs.length})</span></h3>${xs.map(itemVer).join("")}</div>`).join("") : `<div class="card ok">✓ Nicio problemă găsită.</div>`}
+  <p class="muted">Ce se verifică: ora 1 și ferestrele (R7), maximul de ore pe zi în fiecare locație, celule fără profesor sau fără disciplină, orele clasei față de încadrare (R8), profesori în două clase deodată, profesori în două locații în aceeași zi (R2), ferestrele profesorilor (R13), maximum 2 ore pe zi la cultura generală (R14), fără dus-întors între locații (R15), 15 minute pentru drum între locații (R16), întâi Șendriceni apoi Dorohoi (R17), orele fiecărui profesor la fiecare clasă față de încadrare.</p>`;
+}
+
+/* ---------- TAB: Reguli ---------- */
+function vReg(){
+  return `<h2>Reguli</h2>
+  <p class="muted">Lista de reguli pentru orar. Coloana din dreapta spune ce verifică aplicația automat.</p>
+  <div class="card scroll"><table><tr><th>Nr.</th><th>Regula</th><th>În aplicație</th><th></th></tr>
+  ${state.reguli.map((r, i) => `<tr><td><b>${esc(r.id)}</b></td><td>${esc(r.text)}</td><td class="muted">${esc(r.auto || "–")}</td><td><button class="btn sec mic" onclick="editRegula(${i})">✎</button></td></tr>`).join("")}</table>
+  <div style="margin-top:10px"><button class="btn mic" onclick="editRegula(-1)">+ regulă nouă</button></div></div>
+  <div class="card"><h3>Note (încă netrecute ca reguli)</h3>${state.note.map((n, i) => `<div class="item niv-info"><span class="t">${esc(n)}</span><button class="btn sec mic" onclick="stergeNota(${i})">✕</button></div>`).join("")}
+  <textarea id="notaNoua" placeholder="Notă nouă…"></textarea><button class="btn mic" style="margin-top:6px" onclick="adaugaNota()">Adaugă nota</button></div>`;
+}
+function editRegula(i){
+  const r = i >= 0 ? state.reguli[i] : {id:"R" + (state.reguli.length + 1), text:"", auto:""};
+  $("#modalCont").innerHTML = `<h3>${esc(r.id)}</h3><label>Textul regulii</label><textarea id="rT" style="min-height:120px">${esc(r.text)}</textarea>
+  <div class="row" style="margin-top:12px"><button class="btn" onclick="salveazaRegula(${i},'${esc(r.id)}')">Salvează</button><span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+  $("#modal").classList.add("deschis");
+}
+function salveazaRegula(i, id){
+  const text = $("#rT").value.trim(); if(!text) return;
+  if(i >= 0) state.reguli[i].text = text; else state.reguli.push({id, text, auto:""});
+  saveState(); inchideModal(); render(); toast("Regula a fost salvată.");
+}
+function adaugaNota(){ const t = $("#notaNoua").value.trim(); if(!t) return; state.note.push(t); saveState(); render(); }
+function stergeNota(i){ if(!confirm("Ștergi nota?")) return; state.note.splice(i, 1); saveState(); render(); }
+
+/* ---------- TAB: Date și setări ---------- */
+function vDate(){
+  const u = state.meta.ultimBackup;
+  return `<h2>Date și setări</h2>
+  <div class="card"><h3>Backup (pentru restaurare completă)</h3>
+    <p class="muted">Ultimul backup: ${u ? new Date(u).toLocaleString("ro-RO") : "niciodată"}. Pe telefon se deschide meniul de distribuire (alege Google Drive); pe laptop se descarcă fișierul.</p>
+    <div class="row"><button class="btn" onclick="backupJSON()">💾 Fă backup (JSON)</button>
+    <label class="btn sec" style="margin:0;color:var(--infield)">📂 Restaurează din backup<input type="file" accept=".json,application/json" style="display:none" onchange="importJSON(this.files[0])"></label></div>
+  </div>
+  <div class="card"><h3>Export Excel (pentru citit și trimis)</h3>
+    <p class="muted">Foi: planșa Șendriceni și planșa Dorohoi (ca în Excelul tău), orar pe clase, orar pe profesori, încadrare, verificări. Excelul nu restaurează aplicația – pentru asta e backup-ul JSON.</p>
+    <div class="row"><button class="btn" onclick="exportExcel()">📊 Exportă în Excel</button>
+    <button class="btn sec" onclick="tiparesteProf(profCuOre())">🖨 Toate orarele individuale (profesori)</button>
+    <button class="btn sec" onclick="tiparesteClase(state.clase.map(c=>c.id))">🖨 Toate orarele claselor</button></div>
+  </div>
+  <div class="card"><h3>Săptămâni de cursuri pe clasă (R11)</h3><div class="row">
+    ${state.clase.map(c => `<div><label>${c.id}</label><input type="number" value="${c.saptamani}" style="width:80px" onchange="clasa('${c.id}').saptamani=+this.value||c.saptamani;saveState();render()"></div>`).join("")}</div></div>
+  <div class="card"><h3>Taburi afișate</h3><div class="row">
+    ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
+  <div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
+    <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>
+  <p class="muted">Aplicația ORAR · versiunea 2.0 · datele se păstrează în acest browser.</p>`;
+}
+function comutaTab(id, vizibil){
+  const a = state.meta.taburiAscunse; const i = a.indexOf(id);
+  if(vizibil && i >= 0) a.splice(i, 1); if(!vizibil && i < 0) a.push(id);
+  saveState(); render();
+}
+function profCuOre(){ const I = index(); return state.profesori.filter(p => I.prof[p]); }
+function reseteaza(){
+  if(!confirm("Sigur readuci datele inițiale? Modificările tale din aplicație se pierd (dacă nu ai backup).")) return;
+  pushUndo(); const meta = state.meta; state = clone(DATA_INITIAL); state.meta = meta; migreazaDate(); saveState(); render(); toast("Datele inițiale au fost readuse.");
+}
+async function trimiteFisier(blob, nume){
+  try{
+    const f = new File([blob], nume, {type: blob.type});
+    if(navigator.canShare && navigator.canShare({files:[f]}) && /Android|iPhone|iPad/i.test(navigator.userAgent)){ await navigator.share({files:[f], title:nume}); return; }
+  }catch(e){ if(e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nume; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function dataFis(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+async function backupJSON(){
+  state.meta.ultimBackup = Date.now(); saveStateNow();
+  await trimiteFisier(new Blob([JSON.stringify(state, null, 1)], {type:"application/json"}), `orar-backup-${dataFis()}.json`);
+  render(); toast("Backup creat.");
+}
+function importJSON(f){
+  if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const s = JSON.parse(rd.result);
+      if(!s.orar || !s.clase || !s.incadrare) throw new Error("fișierul nu e un backup ORAR");
+      if(!confirm("Înlocuiești datele actuale cu cele din backup?")) return;
+      pushUndo(); state = s; migreazaDate(); saveState(); render(); toast("Backup restaurat.");
+    }catch(e){ toast("Nu am putut citi backup-ul: " + e.message); }
+  };
+  rd.readAsText(f);
+}
+
+/* ---------- tipărire ---------- */
+const ANTET = `Liceul Tehnologic „Al. Vlahuță” Șendriceni · An școlar 2026–2027`;
+function tipareste(html, pdf){
+  $("#printArea").innerHTML = html;
+  if(pdf) toast("În fereastra de tipărire alege „Salvează ca PDF”.");
+  setTimeout(() => window.print(), pdf ? 600 : 50);
+}
+function tiparesteProf(lista, pdf){
+  tipareste(lista.map(p => `<div class="pagina"><p style="margin:0">${ANTET}</p><h2>Orar individual – prof. ${esc(p)}</h2>${grilaProf(p, {print:true})}<p style="font-size:9px">P1 = prima perioadă, P2 = a doua perioadă, ~ = alternanță. Generat ${azi()}.</p></div>`).join(""), pdf);
+}
+function tiparesteClase(lista, pdf){
+  tipareste(lista.map(c => { const cl = clasa(c); return `<div class="pagina"><p style="margin:0">${ANTET}</p><h2>Orarul clasei ${c} – ${esc(cl.calificare)} (${cl.locatie})</h2><p style="margin:0 0 4px">Diriginte: ${esc(cl.diriginte)}</p>${grilaClasa(c, {print:true})}</div>`; }).join(""), pdf);
+}
+
+/* ---------- export Excel (xlsx scris direct, fără biblioteci – merge și offline) ---------- */
+const CRC_T = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b){ let c = 0xFFFFFFFF; for(let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zip(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for(const f of files){
+    const name = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, time, true); h.setUint16(12, date, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+    h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, time, true); c.setUint16(14, date, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, name.length, true); c.setUint16(30, 0, true); c.setUint16(32, 0, true); c.setUint16(34, 0, true); c.setUint16(36, 0, true); c.setUint32(38, 0, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  const cdSize = central.reduce((s, x) => s + x.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function colL(n){ let s = ""; n++; while(n){ const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+const xe = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+/* rânduri: liste de valori; o valoare {v, b:true} = îngroșat */
+function sheetXML(rows, widths, merges, heights, fit){
+  let x = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`;
+  if(fit) x += `<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>`;
+  if(widths) x += `<cols>${widths.map((w, i) => `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>`;
+  x += "<sheetData>";
+  rows.forEach((r, i) => {
+    x += `<row r="${i+1}"${heights && heights[i] ? ` ht="${heights[i]}" customHeight="1"` : ""}>`;
+    r.forEach((v, j) => {
+      if(v === null || v === undefined || v === "") return;
+      const o = (typeof v === "object") ? v : {v};
+      const ref = colL(j) + (i+1), s = o.s ?? (o.b ? 1 : 2);
+      if(typeof o.v === "number") x += `<c r="${ref}" s="${s}"><v>${o.v}</v></c>`;
+      else x += `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xe(o.v)}</t></is></c>`;
+    });
+    x += "</row>";
+  });
+  x += "</sheetData>";
+  if(merges && merges.length) x += `<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>`;
+  return x + "<pageMargins left=\"0.2\" right=\"0.2\" top=\"0.3\" bottom=\"0.3\" header=\"0.1\" footer=\"0.1\"/>" + (fit ? "<pageSetup paperSize=\"8\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"1\"/>" : "<pageSetup paperSize=\"9\" orientation=\"landscape\"/>") + "</worksheet>";
+}
+function xlsx(sheets){
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="6"><font><sz val="11"/><name val="Calibri Light"/></font><font><b/><sz val="11"/><name val="Calibri Light"/></font><font><b/><sz val="20"/><name val="Calibri"/></font><font><sz val="8"/><name val="Calibri"/></font><font><b/><sz val="9"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBFBFBF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE0E0E0"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF9BC2E6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFA9D08E"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF4B084"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="14"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/>${[4,5,6].map(f => `<xf numFmtId="0" fontId="3" fillId="${f}" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`).join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const files = [
+    {name:"[Content_Types].xml", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
+    {name:"_rels/.rels", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:"xl/workbook.xml", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`},
+    {name:"xl/_rels/workbook.xml.rels", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s, i) => `<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name:"xl/styles.xml", data:styles},
+    ...sheets.map((s, i) => ({name:`xl/worksheets/sheet${i+1}.xml`, data:sheetXML(s.rows, s.widths, s.merges, s.heights, s.fit)}))
+  ];
+  return zip(files);
+}
+function textCelula(x){ return areContinut(x) ? (x.disc || "?") + " — " + (x.prof || []).map(p => p.p + (p.per !== "T" ? " (" + (p.per === "A" ? "alternanță" : p.per) + ")" : "")).join(", ") : ""; }
+/* Foaia „planșă”, ca ORAR SENDRICENI / ORAR DOROHOI: stiluri 3 text celulă, 4 antet gri, 5 zi verticală, 6 clasă mare, 7 ora (gri), 8 cod profesor, 9 nume profesor vertical, 10 titlu */
+function foaiePlansa(loc){
+  const M = plansaModel(loc), rows = [], merges = [], heights = [];
+  const nC = M.clase.length, nP = M.profi.length, c0 = 3 + nC + 1; // c0 = prima coloană a blocului de profesori
+  const W = [4, 4, 13, ...M.clase.map(() => 19), 2, 4, 4, 13, ...M.profi.map(() => 7)];
+  rows.push([{v:"LICEUL TEHNOLOGIC „ALEXANDRU VLAHUȚĂ” ȘENDRICENI · ORAR " + (state.an || "2026-2027") + " · " + loc.toUpperCase(), s:10}]); heights.push(22);
+  const r0 = 2;
+  const lab = ["CLASA", "CALIFICARE / SPECIALIZARE", "ORELE"];
+  for(let i = 0; i < 3; i++){
+    const r = [];
+    r[0] = i === 0 ? {v:"ZIUA", s:5} : {v:"", s:5}; r[1] = {v:"", s:7}; r[2] = {v:lab[i], s:4};
+    M.clase.forEach((c, k) => r[3 + k] = i === 0 ? {v:c.id, s:6} : {v:(i === 1 ? c.calificare : c.diriginte || "").toUpperCase(), s:4});
+    r[c0] = i === 0 ? {v:"ZIUA", s:5} : {v:"", s:5}; r[c0 + 1] = {v:"", s:7}; r[c0 + 2] = {v:lab[i], s:4};
+    M.profi.forEach((p, k) => r[c0 + 3 + k] = i === 0 ? {v:p.toUpperCase(), s:9} : {v:"", s:9});
+    rows.push(r); heights.push(i === 0 ? 40 : i === 1 ? 36 : 30);
+  }
+  merges.push(`A${r0}:A${r0+2}`, `B${r0}:B${r0+2}`, `${colL(c0)}${r0}:${colL(c0)}${r0+2}`, `${colL(c0+1)}${r0}:${colL(c0+1)}${r0+2}`);
+  M.profi.forEach((p, k) => merges.push(`${colL(c0+3+k)}${r0}:${colL(c0+3+k)}${r0+2}`));
+  let r = r0 + 3;
+  for(const d of M.zile){
+    const start = r;
+    d.ore.forEach((o, j) => {
+      const row = [];
+      row[0] = {v: j === 0 ? d.z.toUpperCase() : "", s:5}; row[1] = {v:o.h, s:7}; row[2] = {v:o.timp, s:7};
+      o.clase.forEach((x, k) => row[3 + k] = {v: areContinut(x) ? x.disc : "", s:3});
+      row[c0] = {v: j === 0 ? d.z.toUpperCase() : "", s:5}; row[c0 + 1] = {v:o.h, s:7}; row[c0 + 2] = {v:o.timp, s:7};
+      o.profi.forEach((L, k) => { const inf = infoProfCel(M.profi[k], d.z, o.h, L);
+        row[c0 + 3 + k] = {v:L.map(codProf).join(" ") + (inf.parteneri.length ? "\n" + inf.parteneri.join(", ") : ""), s: !L.length ? 8 : inf.cls === "locD" ? 11 : inf.cls === "locS" ? 12 : 13}; });
+      rows.push(row); heights.push(30); r++;
+    });
+    merges.push(`A${start}:A${r-1}`, `${colL(c0)}${start}:${colL(c0)}${r-1}`);
+  }
+  merges.push(`A1:${colL(Math.min(c0 + 2 + nP, 60))}1`);
+  // legendă sub planșă
+  rows.push([]); rows.push([{v:"Legendă (blocul profesorilor):", s:1}, , , {v:"oră la Șendriceni", s:12}, {v:"oră la Dorohoi", s:11}, {v:"pachet (dedesubt: cu cine)", s:13}]); heights.push(14, 22);
+  return {name:"Plansa " + (loc === "Dorohoi" ? "Dorohoi" : "Sendriceni"), rows, widths:W, merges, heights, fit:true};
+}
+function construiesteExcel(){
+  const B = v => ({v, b:true});
+  const rc = [];
+  for(const cl of state.clase){
+    rc.push([B(`${cl.id} – ${cl.calificare} – ${cl.locatie} – diriginte ${cl.diriginte}`)]);
+    rc.push([B("Ora"), ...ZILE.map(B)]);
+    const maxH = Math.max(6, ...ZILE.flatMap(z => Object.keys(state.orar[cl.id][z]).map(Number)));
+    for(let o = 1; o <= maxH; o++) rc.push([o, ...ZILE.map(z => textCelula(state.orar[cl.id][z][o]))]);
+    rc.push([]);
+  }
+  const I = index(), rp = [];
+  for(const p of state.profesori.filter(p => I.prof[p])){
+    rp.push([B("Prof. " + p)]); rp.push([B("Ora"), ...ZILE.map(B)]);
+    let maxH = 6; ZILE.forEach(z => Object.keys(I.prof[p][z] || {}).forEach(h => maxH = Math.max(maxH, +h)));
+    for(let o = 1; o <= maxH; o++) rp.push([o, ...ZILE.map(z => ((I.prof[p][z] || {})[o] || []).map(x => `${x.c} – ${x.disc} (${x.loc})${x.per !== "T" ? " [" + (x.per === "A" ? "alternanță" : x.per) + "]" : ""}`).join("; "))]);
+    rp.push([]);
+  }
+  const ri = [[B("Profesor"), B("Clasa"), B("Disciplina"), B("Tip"), B("Ore/an"), B("Ore/săpt."), B("În orar"), B("Motiv")]];
+  state.incadrare.forEach(r => ri.push([r.p, r.clasa, r.disciplina, r.tip, r.oreAn, clasa(r.clasa) ? Math.round(oreSapt(r)*100)/100 : "", r.inOrar ? "da" : "nu", r.motiv || ""]));
+  const rv = [[B("Nivel"), B("Regula"), B("Problema")]];
+  verifica().forEach(x => rv.push([x.nivel, x.regula, x.text]));
+  return xlsx([
+    foaiePlansa("Șendriceni"),
+    foaiePlansa("Dorohoi"),
+    {name:"Orar pe clase", rows:rc, widths:[6,34,34,34,34,34]},
+    {name:"Orar pe profesori", rows:rp, widths:[6,38,38,38,38,38]},
+    {name:"Incadrare", rows:ri, widths:[30,8,50,8,9,9,8,26]},
+    {name:"Verificari", rows:rv, widths:[13,14,110]}
+  ]);
+}
+async function exportExcel(){
+  try{ await trimiteFisier(construiesteExcel(), `orar-${dataFis()}.xlsx`); toast("Excel creat."); }
+  catch(e){ toast("Exportul nu a reușit: " + e.message); }
+}
+
+/* ---------- pornire ---------- */
+load();
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("service-worker.js").catch(() => {});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+from playwright.sync_api import sync_playwright
+import json
+with sync_playwright() as p:
+    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    pg=b.new_page(viewport={"width":1400,"height":1000})
+    errs=[];pg.on("pageerror",lambda e:errs.append(str(e)))
+    pg.goto("file:///tmp/orar/app/index.html");pg.wait_for_timeout(800)
+    f=lambda: pg.evaluate("[nrVer('eroare'),nrVer('avertisment',x=>x.regula==='R2'),verifica().filter(x=>x.regula==='R13').reduce((s,x)=>s+x.ferestre,0),nrVer('avertisment')]")
+    print('inainte',f())
+    pg.on("dialog",lambda d:d.accept())
+    pg.evaluate("mergiLa('ver')");pg.wait_for_timeout(300)
+    pg.click("text=Aplică orarul reorganizat");pg.wait_for_timeout(500)
+    print('dupa',f())
+    print(pg.evaluate("verifica().filter(x=>x.nivel==='eroare').map(x=>x.text)"))
+    print(pg.evaluate("verifica().filter(x=>x.regula!=='R2'&&x.regula!=='R13').map(x=>x.text)"));print(pg.evaluate("state.reguli.map(r=>r.id).join(',')"))
+    pg.screenshot(path="/tmp/orar/shot_reorg.png",full_page=False)
+    pg.evaluate("plansaLoc='Șendriceni';mergiLa('plansa')");pg.wait_for_timeout(400);pg.screenshot(path="/tmp/orar/shot_reorg_plansa.png")
+    pg.reload();pg.wait_for_timeout(600);print('dupa reload',f())
+    pg.evaluate("mergiLa('ver')");pg.click("text=Revino la orarul dinainte");pg.wait_for_timeout(400);print('revenire',f())
+    print('erori JS',errs)
+    b.close()
