@@ -1043,7 +1043,7 @@ function vProfi(){
   const lipsa = [];
   state.clase.forEach(cl => acoperire(cl).filter(x => x.rest > 0.5).forEach(x => lipsa.push(`<div class="item niv-avertisment"><span class="t"><b>${esc(cl.id)}</b> – ${esc(x.it.d || "fără nume")}: ${fmt(x.rest / cl.saptamani)} ore/săpt. (${fmt(x.rest)} ore/an) neîncadrate</span><button class="btn sec mic" onclick="selCls='${jsq(cl.id)}';mergiLa('cls')">Vezi</button></div>`)));
   return `<h2>Profesori și încadrare · ${esc(state.an)}</h2>
-  <p class="muted">Deschizi un profesor și îi asociezi clasele. După specialitățile din fișa lui, aplicația îi propune singură disciplinele și orele rămase; le poți schimba de mână (de exemplu, îi dai doar o parte din ore). Norma: ore/an ÷ 720, iar orele de instruire practică (PIP) ÷ 936.</p>
+  <p class="muted">Deschizi un profesor și îi asociezi clasele. După specialitățile din fișa lui, aplicația îți arată ce ore poate preda la fiecare clasă; tu bifezi doar ce vrei să-i dai și poți împărți orele între mai mulți profesori. Norma: ore/an ÷ 720, iar orele de instruire practică (PIP) ÷ 936.</p>
   <div class="card row"><button class="btn" onclick="profNou()">+ Profesor nou</button><span class="grow"></span><span class="muted">${state.profesori.length} profesori</span></div>
   <div class="card scroll"><table><tr><th>Profesor · funcția · clasele</th><th class="num">Ore/săpt. în orar</th><th class="num">Normă</th></tr>${rows || `<tr><td colspan="3" class="muted">Niciun profesor încă.</td></tr>`}</table></div>
   <div class="card"><h3>Ore încă neîncadrate ${lipsa.length ? `<span class="badge galben">${lipsa.length}</span>` : ""}</h3>${lipsa.join("") || `<p class="ok">✓ Toate disciplinele din planurile claselor au profesor.</p>`}</div>`;
@@ -1135,22 +1135,21 @@ function renderAsoc(){
       for(const x of A){
         const al = x.R.filter(r => r.p === p).reduce((s, r) => s + r.oreAn, 0);
         const rest = Math.max(0, x.rest);
-        const on = al > 0 || (spec(x.it) && rest > 0.01);
-        asoc.val[x.i] = {on, oreAn: al > 0 ? al : (on ? rest : 0)};
+        asoc.val[x.i] = {on: al > 0, oreAn: al};
       }
     }
-    const ordine = [...A].sort((a, b) => (spec(b.it) - spec(a.it)) || (asoc.val[b.i].on - asoc.val[a.i].on));
+    const poate = A.filter(x => spec(x.it)), altele = A.filter(x => !spec(x.it));
     if(!A.length) h += `<p class="rau">Clasa ${esc(c)} nu are încă disciplinele trecute. Le adaugi în „Clase și planuri”.</p>`;
     else {
-      h += `<p class="muted" style="font-size:13px">Bifate sunt disciplinele din specialitățile lui (cu orele rămase) și cele pe care le are deja. Poți bifa și altele sau schimba orele – de exemplu, îi dai doar o parte din ore.</p>
+      h += `<p class="muted" style="font-size:13px">Sus sunt orele pe care le poate preda la ${esc(c)}, după specialitățile lui. Bifezi doar ce vrei să-i dai: la bifare primește orele rămase, iar tu le poți micșora (de exemplu, împarți orele între doi ingineri). Bifate de la început sunt doar orele pe care le are deja.</p>
       <div class="scroll"><table><tr><th></th><th>Disciplina</th><th class="num">Plan</th><th class="num">Orele lui</th></tr>
-      ${ordine.map(x => { const v = asoc.val[x.i], altii = x.R.filter(r => r.p !== p), alAltii = altii.reduce((s, r) => s + r.oreAn, 0);
+      ${[[poate, `Poate preda (specialitățile lui)${poate.length ? "" : " – nicio disciplină a clasei nu e în specialitățile lui"}`], [altele, "Celelalte discipline ale clasei"]].map(([G, tit]) => `<tr><th colspan="4" style="background:#FBF6E6">${tit}</th></tr>` + G.map(x => { const v = asoc.val[x.i], altii = x.R.filter(r => r.p !== p), alAltii = altii.reduce((s, r) => s + r.oreAn, 0);
         const peste = v.on && (alAltii + v.oreAn) > x.it.oreAn + 0.5, sp = x.it.inOrar;
         const cat = o => sp ? fmt(o / cl.saptamani) : fmt(o) + " pe an";
         return `<tr><td><input type="checkbox" ${v.on ? "checked" : ""} onchange="asoc.val[${x.i}].on=this.checked;if(this.checked&&!asoc.val[${x.i}].oreAn)asoc.val[${x.i}].oreAn=${Math.max(0, Math.round((x.it.oreAn - alAltii) * 100) / 100)};renderAsoc()"></td>
         <td>${esc(x.it.d)} <span class="muted" style="font-size:12px">${esc(x.it.tip)}${x.it.inOrar ? "" : " · nu e în orar"}</span>${spec(x.it) ? ' <span class="tag" style="background:#E6F4EA">specialitatea lui</span>' : ""}${altii.length ? `<div class="muted" style="font-size:12px">alții: ${altii.map(r => esc(scurt(r.p)) + " " + cat(r.oreAn)).join(", ")}</div>` : ""}</td>
-        <td class="num">${cat(x.it.oreAn)}</td>
-        <td class="num"><input type="number" step="${sp ? 0.5 : 1}" min="0" value="${sp ? +(v.oreAn / cl.saptamani).toFixed(2) : v.oreAn}" style="width:62px" ${v.on ? "" : "disabled"} onchange="asoc.val[${x.i}].oreAn=${sp ? `Math.round((+this.value||0)*${cl.saptamani}*10)/10` : "+this.value||0"};renderAsoc()"><div class="muted" style="font-size:11px">${sp ? "pe săpt." : "pe an"}</div>${peste ? '<div class="rau" style="font-size:12px">peste plan</div>' : ""}</td></tr>`; }).join("")}</table></div>`;
+        <td class="num">${cat(x.it.oreAn)}${alAltii > 0.5 ? `<div class="${x.it.oreAn - alAltii > 0.5 ? "muted" : "rau"}" style="font-size:11px">liber ${cat(Math.max(0, x.it.oreAn - alAltii))}</div>` : ""}</td>
+        <td class="num"><input type="number" step="${sp ? 0.5 : 1}" min="0" value="${sp ? +(v.oreAn / cl.saptamani).toFixed(2) : v.oreAn}" style="width:52px" ${v.on ? "" : "disabled"} onchange="asoc.val[${x.i}].oreAn=${sp ? `Math.round((+this.value||0)*${cl.saptamani}*10)/10` : "+this.value||0"};renderAsoc()"><div class="muted" style="font-size:11px">${sp ? "pe săpt." : "pe an"}</div>${peste ? '<div class="rau" style="font-size:12px">peste plan</div>' : ""}</td></tr>`; }).join("")).join("")}</table></div>`;
       let n = norma(p);
       state.incadrare.filter(r => r.p === p && r.clasa === c && A.some(x => potriveste(r, x.it))).forEach(r => n -= r.oreAn / pondere(r));
       A.forEach(x => { const v = asoc.val[x.i]; if(v.on) n += v.oreAn / (x.it.tip === "PIP" ? 936 : 720); });
@@ -1365,7 +1364,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 2.1 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 2.1.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
