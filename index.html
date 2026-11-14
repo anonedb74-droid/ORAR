@@ -120,6 +120,12 @@ table.plansa .gap{border:0;width:14px;background:#fff}
 table.plansa th.pn{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:700;background:#E0E0E0;height:150px;width:34px;white-space:nowrap}
 table.plansa td.t{font-size:10px;width:34px;white-space:nowrap}
 table.plansa td.t.alt{color:#7A4B00}
+table.plansa td.t.locD{background:#DDEBF7}
+table.plansa td.t.locS{background:#E2EFDA}
+table.plansa td.t.pachet{background:#F8CBAD;white-space:normal;line-height:1.1}
+table.plansa td.t small{display:block;font-size:8px;color:#333}
+table.plansa td.t{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.leg-plansa span{display:inline-block;padding:2px 8px;margin-right:6px;border:1px solid #999;border-radius:3px;font-size:12px}
 table.plansa tr.inc-zi td,table.plansa tr.inc-zi th{border-top:3px solid #111}
 table.plansa .gol{background:#fff}
 
@@ -756,6 +762,18 @@ function plansaModel(loc){
   });
   return {loc, clase, profi, zile};
 }
+/* Celula unui profesor în planșă: locația (culoare) și pachetul (cu cine face ora împreună). */
+function infoProfCel(p, z, h, L){
+  if(!L.length) return {cls:"", parteneri:[]};
+  const parteneri = [];
+  for(const x of L){
+    const cel = state.orar[x.c]?.[z]?.[h];
+    (cel?.prof || []).filter(q => q.p !== p).forEach(q => { const n = q.p.split(" ")[0]; if(!parteneri.includes(n)) parteneri.push(n); });
+  }
+  const locuri = new Set(L.map(x => x.loc));
+  const cls = parteneri.length ? "pachet" : locuri.has("Dorohoi") && !locuri.has("Șendriceni") ? "locD" : "locS";
+  return {cls, parteneri};
+}
 function htmlPlansa(loc, opt = {}){
   const M = plansaModel(loc), cl = plansaBloc !== "profesori" || opt.print, pr = plansaBloc !== "clase" || opt.print;
   const nC = M.clase.length, nP = M.profi.length;
@@ -784,7 +802,8 @@ function htmlPlansa(loc, opt = {}){
       }
       if(pr){
         h += ziCel + `<td class="nr">${o.h}</td><td class="tm">${esc(o.timp)}</td>`;
-        h += o.profi.map(L => `<td class="t ${L.some(x => x.per !== "T") ? "alt" : ""}">${L.map(codProf).join(" ")}</td>`).join("");
+        h += o.profi.map((L, k) => { const inf = infoProfCel(M.profi[k], d.z, o.h, L);
+          return `<td class="t ${inf.cls} ${L.some(x => x.per !== "T") ? "alt" : ""}" title="${esc(L.map(x => x.c + " – " + x.disc + " (" + x.loc + ")").join("; "))}${inf.parteneri.length ? " · pachet cu " + esc(inf.parteneri.join(", ")) : ""}">${L.map(codProf).join(" ")}${inf.parteneri.length ? `<small>${esc(inf.parteneri.join(", "))}</small>` : ""}</td>`; }).join("");
       }
       h += "</tr>";
     });
@@ -804,6 +823,7 @@ function vPlansa(){
     <button class="btn sec mic" onclick="tiparestePlansa(plansaLoc,true)">PDF</button>
   </div>
   <p class="muted" style="font-size:13px">Atingi o celulă de clasă ca s-o modifici. În partea profesorilor: „IX F/” = prima perioadă, „/IX F” = a doua perioadă, „IX F*” = alternanță.</p>
+  <p class="leg-plansa"><span style="background:#E2EFDA">oră la Șendriceni</span><span style="background:#DDEBF7">oră la Dorohoi</span><span style="background:#F8CBAD">pachet – dedesubt, cu cine</span></p>
   <div class="scroll card" style="padding:8px">${htmlPlansa(plansaLoc, {cuProf:plansaCuProf})}</div>`;
 }
 function tiparestePlansa(loc, pdf){
@@ -924,7 +944,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   <div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>
-  <p class="muted">Aplicația ORAR · versiunea 1.6 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 1.7 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
@@ -1027,7 +1047,7 @@ function sheetXML(rows, widths, merges, heights, fit){
   return x + "<pageMargins left=\"0.2\" right=\"0.2\" top=\"0.3\" bottom=\"0.3\" header=\"0.1\" footer=\"0.1\"/>" + (fit ? "<pageSetup paperSize=\"8\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"1\"/>" : "<pageSetup paperSize=\"9\" orientation=\"landscape\"/>") + "</worksheet>";
 }
 function xlsx(sheets){
-  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="6"><font><sz val="11"/><name val="Calibri Light"/></font><font><b/><sz val="11"/><name val="Calibri Light"/></font><font><b/><sz val="20"/><name val="Calibri"/></font><font><sz val="8"/><name val="Calibri"/></font><font><b/><sz val="9"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBFBFBF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE0E0E0"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="6"><font><sz val="11"/><name val="Calibri Light"/></font><font><b/><sz val="11"/><name val="Calibri Light"/></font><font><b/><sz val="20"/><name val="Calibri"/></font><font><sz val="8"/><name val="Calibri"/></font><font><b/><sz val="9"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFBFBFBF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE0E0E0"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE2EFDA"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF8CBAD"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="14"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/>${[4,5,6].map(f => `<xf numFmtId="0" fontId="3" fillId="${f}" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`).join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const files = [
     {name:"[Content_Types].xml", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
     {name:"_rels/.rels", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
@@ -1043,7 +1063,7 @@ function textCelula(x){ return areContinut(x) ? (x.disc || "?") + " — " + (x.p
 function foaiePlansa(loc){
   const M = plansaModel(loc), rows = [], merges = [], heights = [];
   const nC = M.clase.length, nP = M.profi.length, c0 = 3 + nC + 1; // c0 = prima coloană a blocului de profesori
-  const W = [4, 4, 13, ...M.clase.map(() => 19), 2, 4, 4, 13, ...M.profi.map(() => 5.5)];
+  const W = [4, 4, 13, ...M.clase.map(() => 19), 2, 4, 4, 13, ...M.profi.map(() => 7)];
   rows.push([{v:"LICEUL TEHNOLOGIC „ALEXANDRU VLAHUȚĂ” ȘENDRICENI · ORAR " + (state.an || "2026-2027") + " · " + loc.toUpperCase(), s:10}]); heights.push(22);
   const r0 = 2;
   const lab = ["CLASA", "CALIFICARE / SPECIALIZARE", "ORELE"];
@@ -1065,12 +1085,15 @@ function foaiePlansa(loc){
       row[0] = {v: j === 0 ? d.z.toUpperCase() : "", s:5}; row[1] = {v:o.h, s:7}; row[2] = {v:o.timp, s:7};
       o.clase.forEach((x, k) => row[3 + k] = {v: areContinut(x) ? x.disc : "", s:3});
       row[c0] = {v: j === 0 ? d.z.toUpperCase() : "", s:5}; row[c0 + 1] = {v:o.h, s:7}; row[c0 + 2] = {v:o.timp, s:7};
-      o.profi.forEach((L, k) => row[c0 + 3 + k] = {v:L.map(codProf).join(" "), s:8});
+      o.profi.forEach((L, k) => { const inf = infoProfCel(M.profi[k], d.z, o.h, L);
+        row[c0 + 3 + k] = {v:L.map(codProf).join(" ") + (inf.parteneri.length ? "\n" + inf.parteneri.join(", ") : ""), s: !L.length ? 8 : inf.cls === "locD" ? 11 : inf.cls === "locS" ? 12 : 13}; });
       rows.push(row); heights.push(30); r++;
     });
     merges.push(`A${start}:A${r-1}`, `${colL(c0)}${start}:${colL(c0)}${r-1}`);
   }
   merges.push(`A1:${colL(Math.min(c0 + 2 + nP, 60))}1`);
+  // legendă sub planșă
+  rows.push([]); rows.push([{v:"Legendă (blocul profesorilor):", s:1}, , , {v:"oră la Șendriceni", s:12}, {v:"oră la Dorohoi", s:11}, {v:"pachet (dedesubt: cu cine)", s:13}]); heights.push(14, 22);
   return {name:"Plansa " + (loc === "Dorohoi" ? "Dorohoi" : "Sendriceni"), rows, widths:W, merges, heights, fit:true};
 }
 function construiesteExcel(){
