@@ -1135,15 +1135,42 @@ function fisaProf(p){
   <div class="row" style="margin-top:8px"><input id="specNoua" list="dlDiscAll" placeholder="de exemplu EDUCATIE FIZICA" style="min-width:240px" class="grow"><button class="btn mic" onclick="adaugaSpec('${jsq(p)}')">+ Adaugă</button></div></div>
   <div class="kpis"><div class="kpi"><b>${fmt(oreProf(p))}</b><span>ore/săpt. în orar</span></div><div class="kpi"><b>${fmt(anTot)}</b><span>ore pe an (cu stagii și alte școli)</span></div><div class="kpi ${norma(p) > 1.005 ? "rau" : ""}"><b>${procent(norma(p))}</b><span>din normă (${fmt(norma(p))} norme)</span></div></div>
   <div class="card"><h3>Încadrarea</h3>
-    <div class="row" style="margin-bottom:10px"><button class="btn" onclick="asociazaClase('${jsq(p)}')">☑ Alege clasele</button><button class="btn sec" onclick="asociazaClasa('${jsq(p)}')">+ O clasă, pe discipline</button></div>
-    <p class="muted" style="font-size:13px;margin-top:0">„Alege clasele”: bifezi toate clasele la care predă o disciplină. „O clasă, pe discipline”: alegi exact orele la o clasă unde poate preda mai multe.</p>
-    <div class="scroll"><table><tr><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">% din normă</th><th></th></tr>
-    ${R.map(({r, i}) => { const cl = clasa(r.clasa); return `<tr><td>${cl ? `<a href="#" onclick="selCls='${jsq(r.clasa)}';mergiLa('cls');return false"><b>${esc(r.clasa)}</b></a>` : esc(r.clasa)}</td><td>${esc(r.disciplina)}${r.inOrar ? "" : ` <span class="muted">(${esc(r.motiv || "nu e în orar")})</span>`}</td><td>${esc(r.tip)}</td>
+    <div class="row" style="margin-bottom:10px"><button class="btn" onclick="asociazaClase('${jsq(p)}')">☑ Alege clasele</button><button class="btn sec" onclick="asociazaClasa('${jsq(p)}')">+ O clasă, pe discipline</button><span class="grow"></span>${R.length ? `<button class="btn sec mic" id="btnStBif" onclick="stergeBifate('${jsq(p)}')" disabled>🗑 Șterge bifate</button><button class="btn rosu mic" onclick="stergeTotIncadrare('${jsq(p)}')">🗑 Șterge toată încadrarea</button>` : ""}</div>
+    <p class="muted" style="font-size:13px;margin-top:0">„Alege clasele”: bifezi toate clasele la care predă o disciplină. „O clasă, pe discipline”: alegi exact orele la o clasă unde poate preda mai multe. Pentru simulări: „Șterge toată încadrarea” îi scoate toate orele odată; „Șterge bifate” – doar rândurile bifate.</p>
+    ${ultimaStergere && ultimaStergere.p === p ? `<div class="item niv-avertisment"><span class="t">Ai șters ${ultimaStergere.rows.length} ${ultimaStergere.rows.length === 1 ? "rând" : "rânduri"} din încadrarea lui.</span><button class="btn mic" onclick="readuStergere()">↩ Readu-le</button></div>` : ""}
+    <div class="scroll"><table><tr><th style="text-align:center">${R.length ? `<input type="checkbox" title="Bifează toate" onchange="document.querySelectorAll('.bifRand').forEach(x=>x.checked=this.checked);actBif()">` : ""}</th><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">% din normă</th><th></th></tr>
+    ${R.map(({r, i}) => { const cl = clasa(r.clasa); return `<tr><td style="text-align:center"><input type="checkbox" class="bifRand" data-i="${i}" onchange="actBif()"></td><td>${cl ? `<a href="#" onclick="selCls='${jsq(r.clasa)}';mergiLa('cls');return false"><b>${esc(r.clasa)}</b></a>` : esc(r.clasa)}</td><td>${esc(r.disciplina)}${r.inOrar ? "" : ` <span class="muted">(${esc(r.motiv || "nu e în orar")})</span>`}</td><td>${esc(r.tip)}</td>
       <td class="num">${cl && r.inOrar ? `<input type="number" step="0.5" min="0" value="${+oreSapt(r).toFixed(2)}" style="width:70px" onchange="setRand(${i},'sapt',this.value)">` : "–"}</td>
       <td class="num"><input type="number" min="0" value="${r.oreAn}" style="width:76px" onchange="setRand(${i},'an',this.value)"></td>
       <td class="num">${procent(r.oreAn / pondere(r))}</td>
-      <td><button class="btn sec mic" onclick="stergeRand(${i})">✕</button></td></tr>`; }).join("") || `<tr><td colspan="7" class="muted">Nicio oră încă. Apasă „Alege clasele”.</td></tr>`}</table></div></div>
+      <td><button class="btn sec mic" onclick="stergeRand(${i})">✕</button></td></tr>`; }).join("") || `<tr><td colspan="8" class="muted">Nicio oră încă. Apasă „Alege clasele”.</td></tr>`}</table></div></div>
   ${dlDisc()}`;
+}
+let ultimaStergere = null;
+function actBif(){ const n = document.querySelectorAll(".bifRand:checked").length, b = $("#btnStBif"); if(b){ b.disabled = !n; b.textContent = n ? `🗑 Șterge bifate (${n})` : "🗑 Șterge bifate"; } }
+function stergeRanduri(p, idx){
+  const set = new Set(idx), rows = state.incadrare.filter((r, i) => set.has(i));
+  if(!rows.length) return;
+  state.incadrare = state.incadrare.filter((r, i) => !set.has(i));
+  ultimaStergere = {p, rows};
+  saveState(); render(); toast(`Am șters ${rows.length} ${rows.length === 1 ? "rând" : "rânduri"}. Norma lui: ${procent(norma(p))}.`);
+}
+function stergeTotIncadrare(p){
+  const idx = state.incadrare.map((r, i) => r.p === p ? i : -1).filter(i => i >= 0);
+  if(!confirm(`Ștergi toată încadrarea lui ${p}? (${idx.length} rânduri). Le poți readuce imediat cu „Readu-le”.`)) return;
+  stergeRanduri(p, idx);
+}
+function stergeBifate(p){
+  const idx = [...document.querySelectorAll(".bifRand:checked")].map(x => +x.dataset.i);
+  if(!idx.length) return;
+  if(!confirm(`Ștergi ${idx.length} ${idx.length === 1 ? "rând" : "rânduri"} din încadrarea lui ${p}?`)) return;
+  stergeRanduri(p, idx);
+}
+function readuStergere(){
+  if(!ultimaStergere) return;
+  state.incadrare.push(...ultimaStergere.rows);
+  const n = ultimaStergere.rows.length; ultimaStergere = null;
+  saveState(); render(); toast(`Am readus ${n} ${n === 1 ? "rând" : "rânduri"}.`);
 }
 function profNou(){
   const p = (prompt("Numele profesorului (Nume Prenume):") || "").trim().replace(/\s+/g, " ");
@@ -1703,7 +1730,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 2.6 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 2.7 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
