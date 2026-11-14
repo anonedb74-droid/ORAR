@@ -1,5 +1,5 @@
 // ORAR – service worker: rețeaua întâi, apoi cache (merge și fără semnal)
-const CACHE_NAME = "orar-cache-v8";
+const CACHE_NAME = "orar-cache-v9";
 const FISIERE = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(FISIERE))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))))); self.clients.claim(); });

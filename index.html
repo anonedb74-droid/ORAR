@@ -198,7 +198,7 @@ const REGULI_INITIALE = [
   {id:"R6", text:"Ordinea la conceperea orarului: întâi zilele de practică, apoi profesorii de cultură generală.", auto:"Se aplică în generator (versiunea următoare)."},
   {id:"R7", text:"Fiecare clasă are ora 1 în fiecare zi; nicio clasă nu poate începe de la ora 2. (Reconfirmată pe 13.11.2026.)", auto:"Eroare când o clasă nu are ora 1 sau are o fereastră în zi."},
   {id:"R8", text:"Fiecare clasă are un anumit număr de ore pe săptămână, în funcție de anul de studiu.", auto:"Eroare când orele din orar diferă de cele din încadrare."},
-  {id:"R9", text:"Fiecare clasă are un anumit număr de săptămâni de practică comasată, la agenți economici; dacă nu are agenți economici, practica comasată se face în școală, cu profesorul desemnat conform încadrării.", auto:"Orele de stagiu din încadrare nu se pun în orarul săptămânal."},
+  {id:"R9", text:"Fiecare clasă are un anumit număr de săptămâni de practică comasată, la agenți economici; dacă nu se găsesc agenți economici pentru toți elevii clasei, clasa rămâne și face practica comasată în atelierul școlii, cu profesorul desemnat conform încadrării.", auto:"Orele de stagiu din încadrare nu se pun în orarul săptămânal."},
   {id:"R10", text:"Catedra unui profesor = 20 ore/săptămână × 36 săptămâni (720); maistrul instructor = 26 × 36 (936).", auto:"Norma se calculează din încadrare: ore ÷ 720, iar orele de instruire practică ÷ 936."},
   {id:"R11", text:"Unele clase au în planul de învățământ mai multe sau mai puține săptămâni pe an școlar; trebuie identificate și stabilite din planul-cadru.", auto:"Săptămânile fiecărei clase se pot modifica în Date și setări."},
   {id:"R13", text:"Profesorii nu au ferestre (ore libere între două ore în aceeași zi), cât se poate. R2 (o singură locație pe zi) este mai grea și are prioritate.", auto:"Avertisment pentru fiecare zi în care un profesor are fereastră."},
@@ -206,6 +206,8 @@ const REGULI_INITIALE = [
   {id:"R15", text:"Un profesor care are în aceeași zi ore în ambele locații se mută o singură dată (de exemplu Șendriceni → Dorohoi), nu dus-întors (Șendriceni → Dorohoi → Șendriceni).", auto:"Eroare când un profesor schimbă locația de mai multe ori în aceeași zi."},
   {id:"R16", text:"Între ore în locații diferite, un profesor are nevoie de cel puțin 15 minute pentru drum, socotite după programul orelor din fiecare locație (de exemplu, marți: Șendriceni ora a 2-a se termină la 9:25, Dorohoi ora a 3-a începe la 10:00 – merge).", auto:"Eroare când timpul dintre ultima oră într-o locație și prima oră în cealaltă e sub 15 minute."},
   {id:"R17", text:"Când un profesor are ore în ambele locații în aceeași zi, întâi are ore la Șendriceni, apoi la Dorohoi (majoritatea profesorilor locuiesc în Dorohoi), cât se poate.", auto:"Avertisment când un profesor merge de la Dorohoi la Șendriceni."},
+  {id:"R18", text:"Clasele care fac Aplicații practice în același atelier nu se suprapun. Directorul pune întâi practica și repartizează clasele pe ateliere; abia apoi se așază orele de cultură generală și de specialitate.", auto:"Reorganizarea automată nu mută zilele de Aplicații practice. Verificarea pe ateliere vine după ce se stabilește atelierul fiecărei clase."},
+  {id:"R19", text:"Practica e de două feluri: practica comasată (săptămâni întregi, la agenți economici sau în atelierul școlii) și Aplicațiile practice săptămânale în atelierele școlii, în pachete de 6 ore (o zi întreagă) cu maistrul instructor. Exemplu: X F are Aplicații practice joi și vineri.", auto:"Blocurile de 3+ ore la rând cu același profesor rămân neatinse la reorganizare."},
   {id:"R12", text:"Clasele a IX-a au Lăcătușărie generală cam primele 7 săptămâni, apoi pe aceleași ore au Bazele desenului tehnic cu Asaftei Lidia. [De rescris: în orarul actual, ziua de specialitate de la IX F și IX G are Dohotariu Viorel în prima perioadă și Pohoață Mihaela în a doua, câte 15 săptămâni.]", auto:""}
 ];
 const NOTE_INITIALE = [
@@ -247,7 +249,8 @@ function load(){
 /* Completează câmpurile lipsă; nu șterge nimic. */
 function migreazaDate(){
   state.reguli ??= clone(REGULI_INITIALE);
-  for(const id of ["R13","R14","R15","R16","R17"]) if(!state.reguli.some(r => r.id === id)) state.reguli.push(clone(REGULI_INITIALE.find(r => r.id === id)));
+  for(const id of ["R13","R14","R15","R16","R17","R18","R19"]) if(!state.reguli.some(r => r.id === id)) state.reguli.push(clone(REGULI_INITIALE.find(r => r.id === id)));
+  { const r9 = state.reguli.find(r => r.id === "R9"), n9 = REGULI_INITIALE.find(r => r.id === "R9"); if(r9 && !r9.text.includes("pentru toți elevii")) r9.text = n9.text; }
   state.reguli.sort((a, b) => (+a.id.slice(1) || 99) - (+b.id.slice(1) || 99));
   state.note ??= clone(NOTE_INITIALE);
   state.meta ??= {};
@@ -944,7 +947,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   <div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>
-  <p class="muted">Aplicația ORAR · versiunea 1.7 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 1.8 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
