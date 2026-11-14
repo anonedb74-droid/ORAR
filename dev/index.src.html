@@ -1504,13 +1504,15 @@ function cardExcelPC(){
 }
 
 /* ---------- TAB: Necesar pe discipline (ore și catedre) ---------- */
-let necCat = "toate", necSort = "disc";
+let necCat = "toate", necSort = "disc", necDesch = new Set();
+function comutaNec(k){ necDesch.has(k) ? necDesch.delete(k) : necDesch.add(k); render(); }
 function necesarDiscipline(){
   const g = new Map();
   for(const cl of state.clase) for(const x of acoperire(cl)){
     const gc = categ(x.it, cl);
     const k = normDisc(x.it.d) + "|" + (x.it.tip === "PIP" ? "PIP" : "T") + "|" + gc;
-    const o = g.get(k) || {d: x.it.d, pip: x.it.tip === "PIP", tipuri: new Set(), comps: new Set(), cat: gc, oreAn: 0, oreSapt: 0, atr: 0, clase: [], prof: new Map()};
+    const o = g.get(k) || {k, d: x.it.d, pip: x.it.tip === "PIP", tipuri: new Set(), comps: new Set(), cat: gc, oreAn: 0, oreSapt: 0, atr: 0, clase: [], prof: new Map(), det: []};
+    o.det.push({cl, x});
     o.comps.add(compDe(x.it, cl));
     o.tipuri.add(x.it.tip); o.oreAn += x.it.oreAn; if(x.it.inOrar) o.oreSapt += x.it.oreAn / cl.saptamani;
     o.atr += Math.min(x.al, x.it.oreAn); o.clase.push(cl.id);
@@ -1528,7 +1530,7 @@ function vNec(){
   const nP = tot(o => o.pip ? 0 : o.neatr / 720), nM = tot(o => o.pip ? o.neatr / 936 : 0);
   const f2 = n => n.toLocaleString("ro-RO", {minimumFractionDigits: 2, maximumFractionDigits: 2});
   return `<h2>Necesar pe discipline · ${esc(state.an)}</h2>
-  <p class="muted">Din planurile tuturor claselor: câte ore are fiecare disciplină și câte catedre înseamnă, pe componentele planului-cadru (TC; CD sau CS; CDL sau CDEOS). Catedra de profesor = 720 ore/an (20 ore/săpt. × 36 săpt.); catedra de maistru instructor (instruire practică, PIP) = 936 ore/an (26 × 36). Se socotesc pe ore/an, pentru că clasele au număr diferit de săptămâni; stagiile și orele în afara orarului intră și ele.</p>
+  <p class="muted">Din planurile tuturor claselor: câte ore are fiecare disciplină și câte catedre înseamnă, pe componentele planului-cadru (TC; CD sau CS; CDL sau CDEOS). Atinge o disciplină ca să vezi toate clasele la care se predă. Catedra de profesor = 720 ore/an (20 ore/săpt. × 36 săpt.); catedra de maistru instructor (instruire practică, PIP) = 936 ore/an (26 × 36). Se socotesc pe ore/an, pentru că clasele au număr diferit de săptămâni; stagiile și orele în afara orarului intră și ele.</p>
   <div class="kpis"><div class="kpi"><b>${f2(cP)}</b><span>catedre de profesor</span></div><div class="kpi"><b>${f2(cM)}</b><span>catedre de maistru (PIP)</span></div><div class="kpi ${nP + nM > 0.005 ? "rau" : ""}"><b>${f2(nP + nM)}</b><span>catedre încă neatribuite (${f2(nP)} prof. + ${f2(nM)} maistru)</span></div></div>
   <div class="card"><div class="row"><span class="muted" style="font-size:13px">Arată:</span>
     ${[["toate","Toate"],["TC","Trunchi comun (TC)"],["CS","CD / CS"],["CDL","CDL / CDEOS"],["PIP","Instruire practică (maiștri)"]].map(([k, t]) => `<button class="btn mic ${necCat === k ? "" : "sec"}" onclick="necCat='${k}';render()">${t}</button>`).join("")}</div>
@@ -1536,12 +1538,23 @@ function vNec(){
     ${[["disc","alfabetic"],["cat","după catedre"],["neatr","după neatribuite"]].map(([k, t]) => `<button class="btn mic ${necSort === k ? "" : "sec"}" onclick="necSort='${k}';render()">${t}</button>`).join("")}
     <span class="grow"></span><button class="btn sec mic" onclick="exportNecesar()">📊 Excel</button></div></div>
   <div class="card scroll"><table><tr><th>Disciplina</th><th class="num">Clase</th><th class="num">Ore/săpt. în orar</th><th class="num">Ore/an</th><th class="num">Catedre</th><th class="num">Neatribuite</th><th>Cine o predă (ore/an)</th></tr>
-  ${L.map(o => `<tr><td><b>${esc(o.d)}</b><div class="muted" style="font-size:12px">${[...o.comps].join(" / ")} · ${[...o.tipuri].join(", ")}${o.pip ? " · maistru" : ""}</div></td>
+  ${L.map(o => `<tr class="click" onclick="comutaNec('${jsq(o.k)}')"><td><span style="display:inline-block;width:14px">${necDesch.has(o.k) ? "▾" : "▸"}</span><b>${esc(o.d)}</b><div class="muted" style="font-size:12px">${[...o.comps].join(" / ")} · ${[...o.tipuri].join(", ")}${o.pip ? " · maistru" : ""}</div></td>
     <td class="num" title="${esc(o.clase.join(", "))}">${o.clase.length}</td><td class="num">${fmt(o.oreSapt)}</td><td class="num">${fmt(o.oreAn)}</td>
     <td class="num"><b>${f2(o.oreAn / o.w)}</b></td>
     <td class="num ${o.neatr > 0.5 ? "rau" : "ok"}">${o.neatr > 0.5 ? `${f2(o.neatr / o.w)}<div style="font-size:11px">${fmt(o.neatr)} ore/an</div>` : "✓"}</td>
-    <td style="font-size:12px">${[...o.prof].map(([p, h]) => `<a href="#" onclick="deschideFisaProf('${jsq(p)}');return false">${esc(scurt(p))}</a> ${fmt(h)}`).join(", ") || '<span class="muted">–</span>'}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">Nicio disciplină. Trece disciplinele claselor în „Clase și planuri”.</td></tr>`}
+    <td style="font-size:12px">${[...o.prof].map(([p, h]) => `<a href="#" onclick="event.stopPropagation();deschideFisaProf('${jsq(p)}');return false">${esc(scurt(p))}</a> ${fmt(h)}`).join(", ") || '<span class="muted">–</span>'}</td></tr>${necDesch.has(o.k) ? detaliiNec(o) : ""}`).join("") || `<tr><td colspan="7" class="muted">Nicio disciplină. Trece disciplinele claselor în „Clase și planuri”.</td></tr>`}
   <tr><th>Total afișat</th><th></th><th class="num">${fmt(tot(o => o.oreSapt))}</th><th class="num">${fmt(tot(o => o.oreAn))}</th><th class="num">${f2(cP + cM)}</th><th class="num">${f2(nP + nM)}</th><th></th></tr></table></div>`;
+}
+function detaliiNec(o){
+  const D = [...o.det].sort((a, b) => (rangClasa(a.cl.id) - rangClasa(b.cl.id)) || ro(a.cl.id, b.cl.id));
+  return `<tr><td colspan="7" style="background:#F7F9FC;padding:6px 10px 10px 26px"><table style="font-size:13px;background:#fff">
+    <tr><th>Clasa</th><th>Componenta</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">Catedre</th><th>Atribuită (ore/săpt.)</th><th class="num">Neatribuit</th><th></th></tr>
+    ${D.map(({cl, x}) => `<tr><td><b>${esc(cl.id)}</b><div class="muted" style="font-size:11px">${esc(eticheta(cl))}</div></td><td>${compDe(x.it, cl)}</td>
+      <td class="num">${x.it.inOrar ? fmt(x.it.oreAn / cl.saptamani) : '<span class="muted">în afara orarului</span>'}</td><td class="num">${fmt(x.it.oreAn)}</td><td class="num">${(x.it.oreAn / o.w).toLocaleString("ro-RO", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+      <td>${x.R.map(r => `<a href="#" onclick="deschideFisaProf('${jsq(r.p)}');return false">${esc(scurt(r.p))}</a> ${fmt(r.oreAn / cl.saptamani)}`).join(", ") || '<span class="rau">neatribuită</span>'}</td>
+      <td class="num ${x.rest > 0.5 ? "rau" : "ok"}">${x.rest > 0.5 ? fmt(x.rest / cl.saptamani) + "/săpt." : "✓"}</td>
+      <td style="white-space:nowrap">${x.rest > 0.5 ? `<button class="btn mic" onclick="alegeProfDisc('${jsq(cl.id)}',${x.i})">Atribuie</button> ` : ""}<button class="btn sec mic" onclick="selCls='${jsq(cl.id)}';mergiLa('cls')">Clasa</button></td></tr>`).join("")}
+  </table></td></tr>`;
 }
 async function exportNecesar(){
   const B = v => ({v, b:true});
@@ -1744,7 +1757,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 2.8 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 2.9 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
