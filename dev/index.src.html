@@ -190,6 +190,7 @@ const TABURI = [
   {id:"plansa", t:"Planșa (ca în Excel)", i:"🗂"},
   {id:"cls", t:"Clase și planuri", i:"🎓"},
   {id:"profi", t:"Profesori și încadrare", i:"🧑‍🏫"},
+  {id:"nec", t:"Necesar pe discipline", i:"📈"},
   {id:"inc", t:"Încadrare (tabel)", i:"📋"},
   {id:"ver", t:"Verificări", i:"✅"},
   {id:"reg", t:"Reguli", i:"📐"},
@@ -580,7 +581,7 @@ function render(){
   $("#selAn").innerHTML = totiAnii().map(a => `<option value="${esc(a)}" ${a === state.an ? "selected" : ""}>${esc(a)}</option>`).join("") + `<option value="__nou">➕ An școlar nou…</option>`;
   if(selClasa && !clasa(selClasa)) selClasa = null;
   if(selProf && !state.profesori.includes(selProf)) selProf = null;
-  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, cls:vCls, profi:vProfi, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
+  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, cls:vCls, profi:vProfi, nec:vNec, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
   $("#main").innerHTML = bannerBackup() + f();
   window.scrollTo(0, y);
 }
@@ -1463,6 +1464,53 @@ function cardExcelPC(){
     <label class="btn sec" style="margin:0;color:var(--infield)">📥 Importă profesori și clase din Excel<input type="file" accept=".xlsx" style="display:none" onchange="importProfesoriClase(this.files[0]);this.value=''"></label></div></div>`;
 }
 
+/* ---------- TAB: Necesar pe discipline (ore și catedre) ---------- */
+let necCat = "toate", necSort = "disc";
+function necesarDiscipline(){
+  const g = new Map();
+  for(const cl of state.clase) for(const x of acoperire(cl)){
+    const k = normDisc(x.it.d) + "|" + (x.it.tip === "PIP" ? "PIP" : "T");
+    const o = g.get(k) || {d: x.it.d, pip: x.it.tip === "PIP", tipuri: new Set(), cat: categ(x.it), oreAn: 0, oreSapt: 0, atr: 0, clase: [], prof: new Map()};
+    o.tipuri.add(x.it.tip); o.oreAn += x.it.oreAn; if(x.it.inOrar) o.oreSapt += x.it.oreAn / cl.saptamani;
+    o.atr += Math.min(x.al, x.it.oreAn); o.clase.push(cl.id);
+    x.R.forEach(r => o.prof.set(r.p, (o.prof.get(r.p) || 0) + r.oreAn));
+    g.set(k, o);
+  }
+  return [...g.values()].map(o => ({...o, w: o.pip ? 936 : 720, cat: o.cat, neatr: Math.max(0, o.oreAn - o.atr)}));
+}
+function vNec(){
+  let L = necesarDiscipline();
+  if(necCat !== "toate") L = L.filter(o => necCat === "PIP" ? o.pip : o.cat === necCat && !o.pip);
+  L.sort(necSort === "cat" ? (a, b) => b.oreAn / b.w - a.oreAn / a.w : necSort === "neatr" ? (a, b) => b.neatr / b.w - a.neatr / a.w : (a, b) => ro(a.d, b.d));
+  const tot = f => L.reduce((s, o) => s + f(o), 0);
+  const cP = tot(o => o.pip ? 0 : o.oreAn / 720), cM = tot(o => o.pip ? o.oreAn / 936 : 0);
+  const nP = tot(o => o.pip ? 0 : o.neatr / 720), nM = tot(o => o.pip ? o.neatr / 936 : 0);
+  const f2 = n => n.toLocaleString("ro-RO", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return `<h2>Necesar pe discipline · ${esc(state.an)}</h2>
+  <p class="muted">Din planurile tuturor claselor: câte ore are fiecare disciplină și câte catedre înseamnă. Catedra de profesor = 720 ore/an (20 ore/săpt. × 36 săpt.); catedra de maistru instructor (instruire practică, PIP) = 936 ore/an (26 × 36). Se socotesc pe ore/an, pentru că clasele au număr diferit de săptămâni; stagiile și orele în afara orarului intră și ele.</p>
+  <div class="kpis"><div class="kpi"><b>${f2(cP)}</b><span>catedre de profesor</span></div><div class="kpi"><b>${f2(cM)}</b><span>catedre de maistru (PIP)</span></div><div class="kpi ${nP + nM > 0.005 ? "rau" : ""}"><b>${f2(nP + nM)}</b><span>catedre încă neatribuite (${f2(nP)} prof. + ${f2(nM)} maistru)</span></div></div>
+  <div class="card"><div class="row"><span class="muted" style="font-size:13px">Arată:</span>
+    ${[["toate","Toate"],["CG","Cultură generală"],["SP","Specialitate (teorie)"],["PIP","Instruire practică (maiștri)"],["AL","Dirigenție"]].map(([k, t]) => `<button class="btn mic ${necCat === k ? "" : "sec"}" onclick="necCat='${k}';render()">${t}</button>`).join("")}</div>
+    <div class="row" style="margin-top:8px"><span class="muted" style="font-size:13px">Ordine:</span>
+    ${[["disc","alfabetic"],["cat","după catedre"],["neatr","după neatribuite"]].map(([k, t]) => `<button class="btn mic ${necSort === k ? "" : "sec"}" onclick="necSort='${k}';render()">${t}</button>`).join("")}
+    <span class="grow"></span><button class="btn sec mic" onclick="exportNecesar()">📊 Excel</button></div></div>
+  <div class="card scroll"><table><tr><th>Disciplina</th><th class="num">Clase</th><th class="num">Ore/săpt. în orar</th><th class="num">Ore/an</th><th class="num">Catedre</th><th class="num">Neatribuite</th><th>Cine o predă (ore/an)</th></tr>
+  ${L.map(o => `<tr><td><b>${esc(o.d)}</b><div class="muted" style="font-size:12px">${[...o.tipuri].join(", ")}${o.pip ? " · maistru" : ""}</div></td>
+    <td class="num" title="${esc(o.clase.join(", "))}">${o.clase.length}</td><td class="num">${fmt(o.oreSapt)}</td><td class="num">${fmt(o.oreAn)}</td>
+    <td class="num"><b>${f2(o.oreAn / o.w)}</b></td>
+    <td class="num ${o.neatr > 0.5 ? "rau" : "ok"}">${o.neatr > 0.5 ? `${f2(o.neatr / o.w)}<div style="font-size:11px">${fmt(o.neatr)} ore/an</div>` : "✓"}</td>
+    <td style="font-size:12px">${[...o.prof].map(([p, h]) => `<a href="#" onclick="deschideFisaProf('${jsq(p)}');return false">${esc(scurt(p))}</a> ${fmt(h)}`).join(", ") || '<span class="muted">–</span>'}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">Nicio disciplină. Trece disciplinele claselor în „Clase și planuri”.</td></tr>`}
+  <tr><th>Total afișat</th><th></th><th class="num">${fmt(tot(o => o.oreSapt))}</th><th class="num">${fmt(tot(o => o.oreAn))}</th><th class="num">${f2(cP + cM)}</th><th class="num">${f2(nP + nM)}</th><th></th></tr></table></div>`;
+}
+async function exportNecesar(){
+  const B = v => ({v, b:true});
+  const L = necesarDiscipline().sort((a, b) => (a.pip - b.pip) || ro(a.d, b.d));
+  const rows = [[B("Disciplina"), B("Tip"), B("Categoria"), B("Nr. clase"), B("Clasele"), B("Ore/săpt. în orar"), B("Ore/an"), B("Catedre"), B("Felul catedrei"), B("Ore/an neatribuite"), B("Catedre neatribuite"), B("Profesori (ore/an)")]];
+  const NC = {CG:"Cultură generală", SP:"Specialitate", AL:"Dirigenție / consiliere"};
+  L.forEach(o => rows.push([o.d, [...o.tipuri].join(", "), o.pip ? "Instruire practică" : NC[o.cat], o.clase.length, o.clase.join(", "), Math.round(o.oreSapt * 100) / 100, o.oreAn, Math.round(o.oreAn / o.w * 100) / 100, o.pip ? "maistru (936)" : "profesor (720)", Math.round(o.neatr * 100) / 100, Math.round(o.neatr / o.w * 100) / 100, [...o.prof].map(([p, h]) => p + " " + fmt(h)).join("; ")]));
+  try{ await trimiteFisier(xlsx([{name:"Necesar pe discipline", rows, widths:[46,12,20,9,40,12,10,10,15,14,14,50]}]), `Necesar pe discipline ${state.an}.xlsx`); }catch(e){ toast("Exportul nu a reușit: " + e.message); }
+}
+
 /* ---------- Ani școlari ---------- */
 const ANI_KEY = "orar_ani_v1";
 function aniSalvati(){ try{ return JSON.parse(localStorage.getItem(ANI_KEY)) || []; }catch(e){ return []; } }
@@ -1655,7 +1703,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 2.5 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 2.6 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
