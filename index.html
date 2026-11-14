@@ -154,7 +154,7 @@ table.plansa .gol{background:#fff}
 <body>
 <header>
   <button id="menuBtn" onclick="document.querySelector('nav').classList.toggle('deschis')" aria-label="Meniu">☰</button>
-  <h1>Orar 2026–2027<small>Liceul Tehnologic „Al. Vlahuță” Șendriceni</small></h1>
+  <h1><span id="titluAn">Orar 2026–2027</span><small>Liceul Tehnologic „Al. Vlahuță” Șendriceni</small></h1>
   <span id="salvat"></span>
 </header>
 <div class="layout">
@@ -184,7 +184,9 @@ const TABURI = [
   {id:"clase", t:"Orar pe clase", i:"🏫"},
   {id:"prof", t:"Orar pe profesori", i:"👤"},
   {id:"plansa", t:"Planșa (ca în Excel)", i:"🗂"},
-  {id:"inc", t:"Încadrare", i:"📋"},
+  {id:"cls", t:"Clase și planuri", i:"🎓"},
+  {id:"profi", t:"Profesori și încadrare", i:"🧑‍🏫"},
+  {id:"inc", t:"Încadrare (tabel)", i:"📋"},
   {id:"ver", t:"Verificări", i:"✅"},
   {id:"reg", t:"Reguli", i:"📐"},
   {id:"date", t:"Date și setări", i:"💾"}
@@ -279,6 +281,31 @@ function migreazaDate(){
   state.incadrare.forEach(r => toti.add(r.p));
   state.profesori = [...toti].sort(ro);
   state.versiune = 1;
+  // v2.1: anul școlar, disciplinele fiecărei clase (planul), fișele profesorilor, modelele din anul trecut
+  state.an ??= "2026-2027";
+  state.modele ??= [];
+  for(const cl of state.clase){
+    cl.nivel ??= "liceu"; cl.calificare ??= ""; cl.diriginte ??= ""; cl.saptamani ??= 36;
+    if(!cl.discipline) cl.discipline = planDinIncadrare(cl.id);
+  }
+  state.fise ??= {};
+  for(const p of state.profesori){
+    if(state.fise[p]) continue;
+    const R = state.incadrare.filter(r => r.p === p);
+    const spec = [];
+    R.forEach(r => { if(r.disciplina && !spec.some(s => normDisc(s) === normDisc(r.disciplina))) spec.push(r.disciplina); });
+    state.fise[p] = {functia: R.length && R.every(r => r.tip === "PIP") ? "maistru instructor" : "profesor", specialitati: spec.sort(ro), obs:""};
+  }
+}
+/* Planul unei clase dedus din încadrare (pentru anul în care încadrarea a venit din Excel). */
+function planDinIncadrare(c){
+  const g = {};
+  for(const r of state.incadrare.filter(r => r.clasa === c)){
+    const k = normDisc(r.disciplina) + "|" + (r.inOrar ? 1 : 0);
+    g[k] ??= {d: r.disciplina, tip: r.tip, oreAn: 0, inOrar: r.inOrar, motiv: r.motiv || ""};
+    g[k].oreAn += r.oreAn;
+  }
+  return Object.values(g).sort((a, b) => (b.inOrar - a.inOrar) || ro(a.d, b.d));
 }
 /* Corecturi de date venite după prima instalare. Fiecare se aplică o singură dată și nu atinge altceva. */
 const CORECTURI = [
@@ -295,7 +322,7 @@ function aplicaCorecturi(){
 }
 function saveState(){ cacheVer = null; clearTimeout(saveTimer); saveTimer = setTimeout(saveStateNow, 150); }
 function saveStateNow(){
-  clearTimeout(saveTimer);
+  clearTimeout(saveTimer); cacheVer = null;
   try{
     localStorage.setItem(KEY, JSON.stringify(state));
     $("#salvat").textContent = "Salvat " + new Date().toLocaleTimeString("ro-RO");
@@ -373,7 +400,7 @@ function celulaMutata(c, z, h){
   return JSON.stringify(v[c]?.[z]?.[h] || null) !== JSON.stringify(state.orar[c]?.[z]?.[h] || null);
 }
 function cardReorganizare(){
-  if(!PROPUNERE) return "";
+  if(!PROPUNERE || state.an !== DATA_INITIAL.an) return "";
   const acum = statOrar(state.orar), nou = statOrar(PROPUNERE), init = statOrar(DATA_INITIAL.orar);
   const modificat = JSON.stringify(state.orar) !== JSON.stringify(DATA_INITIAL.orar) && !state.meta.orarAnterior;
   const aplicat = JSON.stringify(state.orar) === JSON.stringify(PROPUNERE);
@@ -442,6 +469,14 @@ function verifica(){
     }
     const inc = incClasa(c);
     if(Math.abs(inc - total) > 0.5) add("eroare","R8",`${c}: ${total} ore pe săptămână în orar, ${fmt(inc)} în încadrare (diferență ${fmt(total - inc)}).`,{clasa:c});
+  }
+  // Planul clasei față de încadrare (disciplinele trecute în „Clase și planuri”)
+  for(const cl of state.clase){
+    if(!cl.discipline?.length) continue;
+    const A = acoperire(cl);
+    A.filter(x => x.rest > 0.5).forEach(x => add("avertisment","Plan",`${cl.id}: ${x.it.d || "disciplină fără nume"} – ${fmt(x.rest / cl.saptamani)} ore/săpt. (${fmt(x.rest)} ore/an) fără profesor.`,{clasa:cl.id}));
+    A.filter(x => x.rest < -0.5).forEach(x => add("avertisment","Plan",`${cl.id}: ${x.it.d} – încadrate cu ${fmt(-x.rest)} ore/an peste plan (${x.R.map(r => r.p).join(", ")}).`,{clasa:cl.id}));
+    state.incadrare.filter(r => r.clasa === cl.id && !cl.discipline.some(it => potriveste(r, it))).forEach(r => add("avertisment","Plan",`${cl.id}: ${r.p} are „${r.disciplina}”${r.inOrar ? "" : " (în afara orarului)"}, care nu e în disciplinele clasei.`,{clasa:cl.id, prof:r.p}));
   }
   // Profesori: suprapuneri și locații (R2)
   for(const [p, zile] of Object.entries(I.prof)){
@@ -521,7 +556,10 @@ function mergiLa(t, sus = true){
 function render(){
   const y = window.scrollY;
   renderNav();
-  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
+  $("#titluAn").textContent = "Orar " + String(state.an || "").replace("-", "–");
+  if(selClasa && !clasa(selClasa)) selClasa = null;
+  if(selProf && !state.profesori.includes(selProf)) selProf = null;
+  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, cls:vCls, profi:vProfi, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
   $("#main").innerHTML = bannerBackup() + f();
   window.scrollTo(0, y);
 }
@@ -626,6 +664,7 @@ function vDash(){
 /* ---------- TAB: Orar pe clase ---------- */
 function deschideClasa(c){ selClasa = c; mergiLa("clase"); }
 function vClase(){
+  if(!state.clase.length) return `<h2>Orar pe clase</h2><div class="card">Nu ai încă nicio clasă în ${esc(state.an)}. Adaug-o în <a href="#" onclick="mergiLa('cls');return false">Clase și planuri</a>.</div>`;
   selClasa ??= state.clase[0].id;
   const cl = clasa(selClasa);
   let o = 0; ZILE.forEach(z => o += Object.values(state.orar[cl.id][z]).filter(areContinut).length);
@@ -724,7 +763,8 @@ function deschideProf(p){ selProf = p; mergiLa("prof"); }
 function vProf(){
   const I = index();
   const cuOre = state.profesori.filter(p => I.prof[p]);
-  selProf ??= cuOre[0];
+  selProf ??= cuOre[0] || state.profesori[0];
+  if(!selProf) return `<h2>Orar pe profesori</h2><div class="card">Nu ai încă niciun profesor. Adaugă-i în <a href="#" onclick="mergiLa('profi');return false">Profesori și încadrare</a>.</div>`;
   const p = selProf;
   let fx = 0, al = 0;
   Object.entries(I.pereche).filter(([k]) => k.startsWith(p + "|")).forEach(([k,v]) => { fx += v.fx; al += v.al; });
@@ -838,6 +878,381 @@ function tiparestePlansa(loc, pdf){
   tipareste(`<div class="pagina">${htmlPlansa(loc, {print:true, cuProf:plansaCuProf})}</div>`, pdf);
 }
 
+/* ============================================================
+   v2.1 – CLASE ȘI PLANURI, PROFESORI ȘI ÎNCADRARE, ANI ȘCOLARI
+   Totul se face din aplicație: clasele cu disciplinele planului,
+   fișele profesorilor, asocierea profesor–clasă, anul următor.
+   ============================================================ */
+const TIPURI = ["CG","DSP","PIP","O-CO","O-DIRIG"];
+const NIVELURI = ["liceu","profesional"];
+const FUNCTII = ["profesor","maistru instructor","inginer"];
+const jsq = s => esc(String(s ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
+const normClasa = s => String(s || "").trim().toUpperCase().replace(/\s+/g, " ").replace(/^(XII|XI|IX|X|VIII|VII|VI|V)\s*([A-Z0-9]+)$/, "$1 $2");
+const RANG = {V:5, VI:6, VII:7, VIII:8, IX:9, X:10, XI:11, XII:12, XIII:13};
+const rangClasa = id => { const m = String(id).match(/^([IVX]+)\s/); return m ? (RANG[m[1]] || 99) : 99; };
+function sorteazaClase(){ state.clase.sort((a, b) => (rangClasa(a.id) - rangClasa(b.id)) || ro(a.id, b.id)); }
+const pondere = r => r.tip === "PIP" ? 936 : 720;
+/* Un rând din încadrare aparține unei discipline din plan dacă are același nume (fără diacritice și spații) și aceeași situație „în orar”. */
+const potriveste = (r, it) => normDisc(r.disciplina) === normDisc(it.d) && !!r.inOrar === !!it.inOrar;
+function acoperire(cl){
+  return (cl.discipline || []).map((it, i) => {
+    const R = state.incadrare.filter(r => r.clasa === cl.id && potriveste(r, it));
+    const al = R.reduce((s, r) => s + r.oreAn, 0);
+    return {it, i, R, al, rest: Math.round((it.oreAn - al) * 100) / 100};
+  });
+}
+const neincadrateAn = cl => acoperire(cl).reduce((s, x) => s + Math.max(0, x.rest), 0);
+const procent = n => Math.round(n * 100) + "%";
+function toateDisciplinele(){
+  const m = new Map();
+  const add = d => { if(d && !m.has(normDisc(d))) m.set(normDisc(d), d); };
+  state.clase.forEach(c => (c.discipline || []).forEach(it => add(it.d)));
+  (state.modele || []).forEach(c => (c.discipline || []).forEach(it => add(it.d)));
+  state.incadrare.forEach(r => add(r.disciplina));
+  Object.values(state.fise || {}).forEach(f => (f.specialitati || []).forEach(add));
+  return [...m.values()].sort(ro);
+}
+const dlDisc = () => `<datalist id="dlDiscAll">${toateDisciplinele().map(d => `<option value="${esc(d)}">`).join("")}</datalist>`;
+const dlProfi = () => `<datalist id="dlProfi">${state.profesori.map(p => `<option value="${esc(p)}">`).join("")}</datalist>`;
+
+/* ---------- TAB: Clase și planuri ---------- */
+let selCls = null;
+function vCls(){
+  if(selCls && !clasa(selCls)) selCls = null;
+  if(selCls) return fisaClasa(clasa(selCls));
+  const rows = state.clase.map(cl => {
+    const A = acoperire(cl), plan = A.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0) / cl.saptamani, ne = neincadrateAn(cl);
+    return `<tr class="click" onclick="selCls='${jsq(cl.id)}';render();window.scrollTo(0,0)"><td><b>${esc(cl.id)}</b> <span class="tag ${esc(cl.locatie)}">${esc(cl.locatie)}</span><div class="muted" style="font-size:12px">${esc(cl.calificare)} · ${esc(cl.nivel)} · ${A.length} discipline</div></td><td class="num">${cl.saptamani}</td><td class="num">${fmt(plan)}</td><td class="num">${fmt(incClasa(cl.id))}</td><td class="num ${ne > 0.01 ? "rau" : "ok"}">${!A.length ? '<span class="muted">fără plan</span>' : ne > 0.01 ? fmt(ne) : "✓"}</td></tr>`;
+  }).join("");
+  return `<h2>Clase și planuri · ${esc(state.an)}</h2>
+  <p class="muted">Aici treci fiecare clasă cu tot ce conține: calificarea, nivelul, locația, dirigintele, săptămânile de curs și disciplinele din planul-cadru, cu orele lor. Apoi, în „Profesori și încadrare”, îi asociezi fiecărui profesor clasele, iar aplicația îi pune singură orele.</p>
+  <div class="card row"><button class="btn" onclick="clasaNoua()">+ Clasă nouă</button><span class="grow"></span><span class="muted">${state.clase.length} clase · atinge o clasă ca s-o deschizi</span></div>
+  <div class="card scroll"><table><tr><th>Clasa</th><th class="num">Săpt.</th><th class="num">Ore/săpt. în plan</th><th class="num">Ore/săpt. încadrate</th><th class="num">Neîncadrate (ore/an)</th></tr>${rows || `<tr><td colspan="5" class="muted">Nicio clasă încă.</td></tr>`}</table></div>`;
+}
+function fisaClasa(cl){
+  const c = cl.id, A = acoperire(cl), locs = Object.keys(state.clopot);
+  const planOrar = A.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0);
+  const planAn = A.reduce((s, x) => s + x.it.oreAn, 0);
+  const surse = state.clase.filter(o => o.id !== c && o.discipline?.length);
+  return `<h2>Clasa ${esc(c)}</h2>
+  <div class="card row"><button class="btn sec mic" onclick="selCls=null;render()">← Toate clasele</button><span class="grow"></span>
+    <button class="btn sec mic" onclick="deschideClasa('${jsq(c)}')">🏫 Orarul clasei</button><button class="btn rosu mic" onclick="stergeClasa('${jsq(c)}')">Șterge clasa</button></div>
+  <div class="card"><h3>Date generale</h3><div class="row">
+    <div><label>Clasa</label><input value="${esc(c)}" style="width:90px" onchange="redenumesteClasa('${jsq(c)}',this.value)"></div>
+    <div class="grow" style="min-width:220px"><label>Calificare / specializare</label><input value="${esc(cl.calificare)}" style="width:100%" onchange="setCls('${jsq(c)}','calificare',this.value)"></div>
+    <div><label>Nivel</label><select onchange="setCls('${jsq(c)}','nivel',this.value)">${NIVELURI.map(n => `<option ${n === cl.nivel ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+    <div><label>Locație</label><select onchange="setCls('${jsq(c)}','locatie',this.value)">${locs.map(l => `<option ${l === cl.locatie ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></div>
+    <div><label>Diriginte</label><input list="dlProfi" value="${esc(cl.diriginte)}" style="width:200px" onchange="setCls('${jsq(c)}','diriginte',this.value)"></div>
+    <div><label>Săptămâni de curs</label><input type="number" min="1" max="40" value="${cl.saptamani}" style="width:80px" onchange="setCls('${jsq(c)}','saptamani',+this.value||${cl.saptamani})"></div>
+  </div></div>
+  <div class="card"><h3>Disciplinele clasei (din planul-cadru)</h3>
+    <p class="muted" style="font-size:13px">Completezi ore/săpt. sau ore/an – cealaltă se calculează (ore/an = ore/săpt. × ${cl.saptamani} săptămâni). Pentru stagii, practica comasată sau conducerea individuală debifezi „în orar”: orele intră în normă, dar nu în orarul săptămânal. „Rămas” = ore/an încă neîncadrate (roșu dacă lipsesc sau sunt prea multe).</p>
+    <div class="scroll"><table><tr><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th>În orar</th><th>Încadrat (ore/săpt.)</th><th class="num">Rămas</th><th></th></tr>
+    ${A.map(x => `<tr><td><input list="dlDiscAll" value="${esc(x.it.d)}" style="min-width:200px;width:100%" onchange="setDisc('${jsq(c)}',${x.i},'d',this.value)"></td>
+      <td><select onchange="setDisc('${jsq(c)}',${x.i},'tip',this.value)">${TIPURI.map(t => `<option ${t === x.it.tip ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+      <td class="num"><input type="number" step="0.5" min="0" value="${+(x.it.oreAn / cl.saptamani).toFixed(2)}" style="width:72px" onchange="setDisc('${jsq(c)}',${x.i},'sapt',this.value)"></td>
+      <td class="num"><input type="number" min="0" value="${x.it.oreAn}" style="width:78px" onchange="setDisc('${jsq(c)}',${x.i},'an',this.value)"></td>
+      <td style="text-align:center"><input type="checkbox" ${x.it.inOrar ? "checked" : ""} onchange="setDisc('${jsq(c)}',${x.i},'inOrar',this.checked)"></td>
+      <td style="font-size:13px">${x.R.map(r => `<a href="#" onclick="deschideFisaProf('${jsq(r.p)}');return false">${esc(scurt(r.p))}</a> ${fmt(r.oreAn / cl.saptamani)}`).join("<br>") || '<span class="muted">–</span>'}</td>
+      <td class="num ${Math.abs(x.rest) > 0.5 ? "rau" : "ok"}">${Math.abs(x.rest) > 0.5 ? fmt(x.rest) : "✓"}</td>
+      <td><button class="btn sec mic" onclick="stergeDisc('${jsq(c)}',${x.i})">✕</button></td></tr>`).join("")}
+    <tr><th>Total în orar / total pe an</th><th></th><th class="num">${fmt(planOrar / cl.saptamani)}</th><th class="num">${fmt(planAn)}</th><th colspan="4"></th></tr></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn mic" onclick="adaugaDisc('${jsq(c)}')">+ disciplină</button><span class="grow"></span>
+      <select id="srsPlan" style="max-width:260px"><option value="">Copiază disciplinele de la…</option>
+        ${surse.length ? `<optgroup label="Clasele din ${esc(state.an)}">${surse.map(o => `<option value="c:${esc(o.id)}">${esc(o.id)} – ${esc(o.calificare)}</option>`).join("")}</optgroup>` : ""}
+        ${(state.modele || []).length ? `<optgroup label="Modele din anii trecuți">${state.modele.map((m, i) => `<option value="m:${i}">${esc(m.nume)} – ${esc(m.calificare)}</option>`).join("")}</optgroup>` : ""}
+      </select><button class="btn sec mic" onclick="copiazaPlan('${jsq(c)}',$('#srsPlan').value)">Copiază</button></div>
+  </div>
+  <div class="card"><h3>Încadrează un profesor la ${esc(c)}</h3><div class="row">
+    <select id="profLaCls" style="min-width:220px"><option value="">– alege profesorul –</option>${state.profesori.map(p => `<option>${esc(p)}</option>`).join("")}</select>
+    <button class="btn mic" onclick="$('#profLaCls').value&&asociazaClasa($('#profLaCls').value,'${jsq(c)}')">Asociază</button></div></div>
+  ${dlDisc()}${dlProfi()}`;
+}
+function setCls(c, k, v){
+  const cl = clasa(c); if(!cl) return;
+  cl[k] = typeof v === "string" ? v.trim() : v;
+  saveState(); render(); toast("Salvat.");
+}
+function redenumesteClasa(v, nou){
+  nou = normClasa(nou);
+  if(!nou || nou === v){ render(); return; }
+  if(clasa(nou)){ toast("Există deja clasa " + nou + "."); render(); return; }
+  clasa(v).id = nou;
+  state.orar[nou] = state.orar[v] || {}; delete state.orar[v];
+  state.incadrare.forEach(r => { if(r.clasa === v) r.clasa = nou; });
+  if(selCls === v) selCls = nou; if(selClasa === v) selClasa = nou;
+  sorteazaClase(); saveState(); render(); toast(`Clasa ${v} se numește acum ${nou}.`);
+}
+function clasaNoua(){
+  const id = normClasa(prompt("Numele clasei noi (de exemplu IX F):") || "");
+  if(!id) return;
+  if(clasa(id)){ toast("Există deja clasa " + id + "."); return; }
+  const loc = Object.keys(state.clopot)[0] || "";
+  state.clase.push({id, calificare:"", nivel:"liceu", locatie:loc, diriginte:"", saptamani:36, discipline:[]});
+  state.orar[id] = {}; ZILE.forEach(z => state.orar[id][z] = {});
+  sorteazaClase(); selCls = id; saveState(); render(); toast(`Am adăugat clasa ${id}. Completează-i datele și disciplinele.`);
+}
+function stergeClasa(c){
+  const n = state.incadrare.filter(r => r.clasa === c).length;
+  if(!confirm(`Ștergi clasa ${c}? Se șterg și orarul ei și ${n} rânduri din încadrare.`)) return;
+  state.clase = state.clase.filter(x => x.id !== c); delete state.orar[c];
+  state.incadrare = state.incadrare.filter(r => r.clasa !== c);
+  selCls = null; saveState(); render(); toast(`Clasa ${c} a fost ștearsă.`);
+}
+function setDisc(c, i, k, v){
+  const cl = clasa(c), it = cl.discipline[i];
+  const R = state.incadrare.filter(r => r.clasa === c && potriveste(r, it));
+  if(k === "d"){ v = v.trim(); if(!v) return render(); it.d = v; R.forEach(r => r.disciplina = v); }
+  else if(k === "tip"){ it.tip = v; R.forEach(r => r.tip = v); }
+  else if(k === "sapt") it.oreAn = Math.round((+v || 0) * cl.saptamani * 10) / 10;
+  else if(k === "an") it.oreAn = +v || 0;
+  else if(k === "inOrar"){ it.inOrar = v; it.motiv = v ? "" : "stagiu / practică comasată / individual"; R.forEach(r => { r.inOrar = v; r.motiv = it.motiv; }); }
+  saveState(); render();
+}
+function adaugaDisc(c){ clasa(c).discipline.push({d:"", tip:"CG", oreAn:0, inOrar:true, motiv:""}); saveState(); render(); }
+function stergeDisc(c, i){
+  const cl = clasa(c), it = cl.discipline[i];
+  const R = state.incadrare.filter(r => r.clasa === c && potriveste(r, it));
+  if(!confirm(`Ștergi disciplina „${it.d || "fără nume"}” de la ${c}?${R.length ? ` Se șterg și ${R.length} rânduri din încadrare (${R.map(r => r.p).join(", ")}).` : ""}`)) return;
+  state.incadrare = state.incadrare.filter(r => !R.includes(r));
+  cl.discipline.splice(i, 1); saveState(); render();
+}
+function copiazaPlan(c, src){
+  if(!src){ toast("Alege de unde copiezi disciplinele."); return; }
+  const s = src.startsWith("c:") ? clasa(src.slice(2)) : state.modele[+src.slice(2)];
+  if(!s) return;
+  const cl = clasa(c);
+  if(cl.discipline.length && !confirm(`Înlocuiești cele ${cl.discipline.length} discipline ale clasei ${c} cu cele de la ${s.id || s.nume}?`)) return;
+  cl.discipline = clone(s.discipline);
+  const sapt = cl.saptamani !== s.saptamani; if(sapt) cl.saptamani = s.saptamani;
+  if(!cl.calificare) cl.calificare = s.calificare || "";
+  saveState(); render(); toast(`Am copiat ${cl.discipline.length} discipline${sapt ? ` și ${s.saptamani} de săptămâni` : ""}.`);
+}
+
+/* ---------- TAB: Profesori și încadrare ---------- */
+let selPr = null;
+function deschideFisaProf(p){ selPr = p; mergiLa("profi"); }
+function oreProf(p){ return state.incadrare.filter(r => r.p === p && r.inOrar && clasa(r.clasa)).reduce((s, r) => s + oreSapt(r), 0); }
+function vProfi(){
+  if(selPr && !state.profesori.includes(selPr)) selPr = null;
+  if(selPr) return fisaProf(selPr);
+  const rows = state.profesori.map(p => {
+    const f = state.fise[p] || {}, n = norma(p), cls = [...new Set(state.incadrare.filter(r => r.p === p && clasa(r.clasa)).map(r => r.clasa))];
+    return `<tr class="click" onclick="selPr='${jsq(p)}';render();window.scrollTo(0,0)"><td><b>${esc(p)}</b><div class="muted" style="font-size:12px">${esc(f.functia || "")}${cls.length ? " · " + esc(cls.join(", ")) : ""}</div></td><td class="num">${fmt(oreProf(p))}</td><td class="num ${n > 1.005 ? "rau" : ""}">${procent(n)}</td></tr>`;
+  }).join("");
+  const lipsa = [];
+  state.clase.forEach(cl => acoperire(cl).filter(x => x.rest > 0.5).forEach(x => lipsa.push(`<div class="item niv-avertisment"><span class="t"><b>${esc(cl.id)}</b> – ${esc(x.it.d || "fără nume")}: ${fmt(x.rest / cl.saptamani)} ore/săpt. (${fmt(x.rest)} ore/an) neîncadrate</span><button class="btn sec mic" onclick="selCls='${jsq(cl.id)}';mergiLa('cls')">Vezi</button></div>`)));
+  return `<h2>Profesori și încadrare · ${esc(state.an)}</h2>
+  <p class="muted">Deschizi un profesor și îi asociezi clasele. După specialitățile din fișa lui, aplicația îi propune singură disciplinele și orele rămase; le poți schimba de mână (de exemplu, îi dai doar o parte din ore). Norma: ore/an ÷ 720, iar orele de instruire practică (PIP) ÷ 936.</p>
+  <div class="card row"><button class="btn" onclick="profNou()">+ Profesor nou</button><span class="grow"></span><span class="muted">${state.profesori.length} profesori</span></div>
+  <div class="card scroll"><table><tr><th>Profesor · funcția · clasele</th><th class="num">Ore/săpt. în orar</th><th class="num">Normă</th></tr>${rows || `<tr><td colspan="3" class="muted">Niciun profesor încă.</td></tr>`}</table></div>
+  <div class="card"><h3>Ore încă neîncadrate ${lipsa.length ? `<span class="badge galben">${lipsa.length}</span>` : ""}</h3>${lipsa.join("") || `<p class="ok">✓ Toate disciplinele din planurile claselor au profesor.</p>`}</div>`;
+}
+function fisaProf(p){
+  const f = state.fise[p] ??= {functia:"profesor", specialitati:[], obs:""};
+  const R = state.incadrare.map((r, i) => ({r, i})).filter(x => x.r.p === p).sort((a, b) => (rangClasa(a.r.clasa) - rangClasa(b.r.clasa)) || ro(a.r.clasa, b.r.clasa) || ro(a.r.disciplina, b.r.disciplina));
+  const anTot = R.reduce((s, x) => s + x.r.oreAn, 0);
+  return `<h2>${esc(p)}</h2>
+  <div class="card row"><button class="btn sec mic" onclick="selPr=null;render()">← Toți profesorii</button><span class="grow"></span>
+    <button class="btn sec mic" onclick="deschideProf('${jsq(p)}')">👤 Orarul lui</button><button class="btn rosu mic" onclick="stergeProf('${jsq(p)}')">Șterge profesorul</button></div>
+  <div class="card"><h3>Fișa profesorului</h3><div class="row">
+    <div class="grow" style="min-width:220px"><label>Nume și prenume</label><input value="${esc(p)}" style="width:100%" onchange="redenumesteProf('${jsq(p)}',this.value)"></div>
+    <div><label>Funcția</label><select onchange="state.fise['${jsq(p)}'].functia=this.value;saveState();render()">${FUNCTII.map(x => `<option ${x === f.functia ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+  </div>
+  <label style="margin-top:10px">Observații (alte școli, zile în care nu poate, unde locuiește)</label><textarea onchange="state.fise['${jsq(p)}'].obs=this.value;saveState()">${esc(f.obs || "")}</textarea>
+  <h3>Specialități (disciplinele pe care le poate preda)</h3>
+  <div class="row">${(f.specialitati || []).map((s, i) => `<span class="tag">${esc(s)} <a href="#" onclick="stergeSpec('${jsq(p)}',${i});return false" style="color:var(--danger);text-decoration:none">✕</a></span>`).join("") || '<span class="muted">Nicio specialitate încă.</span>'}</div>
+  <div class="row" style="margin-top:8px"><input id="specNoua" list="dlDiscAll" placeholder="de exemplu EDUCATIE FIZICA" style="min-width:240px" class="grow"><button class="btn mic" onclick="adaugaSpec('${jsq(p)}')">+ Adaugă</button></div></div>
+  <div class="kpis"><div class="kpi"><b>${fmt(oreProf(p))}</b><span>ore/săpt. în orar</span></div><div class="kpi"><b>${fmt(anTot)}</b><span>ore pe an (cu stagii și alte școli)</span></div><div class="kpi ${norma(p) > 1.005 ? "rau" : ""}"><b>${procent(norma(p))}</b><span>din normă (${fmt(norma(p))} norme)</span></div></div>
+  <div class="card"><h3>Încadrarea</h3>
+    <div class="row" style="margin-bottom:10px"><button class="btn" onclick="asociazaClasa('${jsq(p)}')">+ Asociază o clasă</button></div>
+    <div class="scroll"><table><tr><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">% din normă</th><th></th></tr>
+    ${R.map(({r, i}) => { const cl = clasa(r.clasa); return `<tr><td>${cl ? `<a href="#" onclick="selCls='${jsq(r.clasa)}';mergiLa('cls');return false"><b>${esc(r.clasa)}</b></a>` : esc(r.clasa)}</td><td>${esc(r.disciplina)}${r.inOrar ? "" : ` <span class="muted">(${esc(r.motiv || "nu e în orar")})</span>`}</td><td>${esc(r.tip)}</td>
+      <td class="num">${cl && r.inOrar ? `<input type="number" step="0.5" min="0" value="${+oreSapt(r).toFixed(2)}" style="width:70px" onchange="setRand(${i},'sapt',this.value)">` : "–"}</td>
+      <td class="num"><input type="number" min="0" value="${r.oreAn}" style="width:76px" onchange="setRand(${i},'an',this.value)"></td>
+      <td class="num">${procent(r.oreAn / pondere(r))}</td>
+      <td><button class="btn sec mic" onclick="stergeRand(${i})">✕</button></td></tr>`; }).join("") || `<tr><td colspan="7" class="muted">Nicio oră încă. Apasă „Asociază o clasă”.</td></tr>`}</table></div></div>
+  ${dlDisc()}`;
+}
+function profNou(){
+  const p = (prompt("Numele profesorului (Nume Prenume):") || "").trim().replace(/\s+/g, " ");
+  if(!p) return;
+  if(state.profesori.includes(p)){ toast("Există deja " + p + "."); return; }
+  state.profesori.push(p); state.profesori.sort(ro);
+  state.fise[p] = {functia:"profesor", specialitati:[], obs:""};
+  selPr = p; saveState(); render(); toast(`Am adăugat profesorul ${p}. Trece-i specialitățile, apoi asociază-i clasele.`);
+}
+function redenumesteProf(v, nou){
+  nou = nou.trim().replace(/\s+/g, " ");
+  if(!nou || nou === v){ render(); return; }
+  if(state.profesori.includes(nou)){ toast("Există deja " + nou + "."); render(); return; }
+  state.profesori = state.profesori.map(x => x === v ? nou : x).sort(ro);
+  state.fise[nou] = state.fise[v]; delete state.fise[v];
+  state.incadrare.forEach(r => { if(r.p === v) r.p = nou; });
+  state.clase.forEach(c => { if(c.diriginte === v) c.diriginte = nou; });
+  for(const c of Object.keys(state.orar)) for(const z of ZILE) Object.values(state.orar[c][z] || {}).forEach(x => (x.prof || []).forEach(q => { if(q.p === v) q.p = nou; }));
+  if(selPr === v) selPr = nou; if(selProf === v) selProf = nou;
+  saveState(); render(); toast(`Am schimbat numele peste tot: ${nou}.`);
+}
+function stergeProf(p){
+  const n = state.incadrare.filter(r => r.p === p).length;
+  if(!confirm(`Ștergi profesorul ${p}? Se șterg și ${n} rânduri din încadrare, iar numele lui dispare din orar.`)) return;
+  state.profesori = state.profesori.filter(x => x !== p); delete state.fise[p];
+  state.incadrare = state.incadrare.filter(r => r.p !== p);
+  for(const c of Object.keys(state.orar)) for(const z of ZILE) Object.values(state.orar[c][z] || {}).forEach(x => x.prof = (x.prof || []).filter(q => q.p !== p));
+  selPr = null; saveState(); render(); toast(`${p} a fost șters.`);
+}
+function adaugaSpec(p){
+  const v = ($("#specNoua").value || "").trim(); if(!v) return;
+  const f = state.fise[p]; f.specialitati ??= [];
+  if(!f.specialitati.some(s => normDisc(s) === normDisc(v))) f.specialitati.push(v);
+  f.specialitati.sort(ro); saveState(); render();
+}
+function stergeSpec(p, i){ state.fise[p].specialitati.splice(i, 1); saveState(); render(); }
+function setRand(i, k, v){
+  const r = state.incadrare[i], cl = clasa(r.clasa);
+  if(k === "sapt" && cl) r.oreAn = Math.round((+v || 0) * cl.saptamani * 10) / 10; else r.oreAn = +v || 0;
+  saveState(); render();
+}
+function stergeRand(i){
+  const r = state.incadrare[i];
+  if(!confirm(`Scoți ${r.disciplina} de la ${r.clasa} din încadrarea lui ${r.p}? Orele rămân neîncadrate în planul clasei.`)) return;
+  state.incadrare.splice(i, 1); saveState(); render();
+}
+
+/* Asocierea profesor–clasă: aplicația propune disciplinele din specialitățile profesorului, cu orele rămase; se pot schimba de mână. */
+let asoc = null;
+function asociazaClasa(p, c){ asoc = {p, c: c || "", val: null}; renderAsoc(); $("#modal").classList.add("deschis"); }
+function renderAsoc(){
+  const {p, c} = asoc, f = state.fise[p] || {specialitati:[]};
+  let h = `<h3>Asociază o clasă · ${esc(p)}</h3><label>Clasa</label><select onchange="asoc.c=this.value;asoc.val=null;renderAsoc()" style="width:100%"><option value="">– alege clasa –</option>${state.clase.map(cl => `<option value="${esc(cl.id)}" ${cl.id === c ? "selected" : ""}>${esc(cl.id)} – ${esc(cl.calificare)}</option>`).join("")}</select>`;
+  const cl = c && clasa(c);
+  if(cl){
+    const A = acoperire(cl);
+    const spec = it => (f.specialitati || []).some(s => normDisc(s) === normDisc(it.d));
+    if(!asoc.val){
+      asoc.val = {};
+      for(const x of A){
+        const al = x.R.filter(r => r.p === p).reduce((s, r) => s + r.oreAn, 0);
+        const rest = Math.max(0, x.rest);
+        const on = al > 0 || (spec(x.it) && rest > 0.01);
+        asoc.val[x.i] = {on, oreAn: al > 0 ? al : (on ? rest : 0)};
+      }
+    }
+    const ordine = [...A].sort((a, b) => (spec(b.it) - spec(a.it)) || (asoc.val[b.i].on - asoc.val[a.i].on));
+    if(!A.length) h += `<p class="rau">Clasa ${esc(c)} nu are încă disciplinele trecute. Le adaugi în „Clase și planuri”.</p>`;
+    else {
+      h += `<p class="muted" style="font-size:13px">Bifate sunt disciplinele din specialitățile lui (cu orele rămase) și cele pe care le are deja. Poți bifa și altele sau schimba orele – de exemplu, îi dai doar o parte din ore.</p>
+      <div class="scroll"><table><tr><th></th><th>Disciplina</th><th class="num">Plan</th><th class="num">Orele lui</th></tr>
+      ${ordine.map(x => { const v = asoc.val[x.i], altii = x.R.filter(r => r.p !== p), alAltii = altii.reduce((s, r) => s + r.oreAn, 0);
+        const peste = v.on && (alAltii + v.oreAn) > x.it.oreAn + 0.5, sp = x.it.inOrar;
+        const cat = o => sp ? fmt(o / cl.saptamani) : fmt(o) + " pe an";
+        return `<tr><td><input type="checkbox" ${v.on ? "checked" : ""} onchange="asoc.val[${x.i}].on=this.checked;if(this.checked&&!asoc.val[${x.i}].oreAn)asoc.val[${x.i}].oreAn=${Math.max(0, Math.round((x.it.oreAn - alAltii) * 100) / 100)};renderAsoc()"></td>
+        <td>${esc(x.it.d)} <span class="muted" style="font-size:12px">${esc(x.it.tip)}${x.it.inOrar ? "" : " · nu e în orar"}</span>${spec(x.it) ? ' <span class="tag" style="background:#E6F4EA">specialitatea lui</span>' : ""}${altii.length ? `<div class="muted" style="font-size:12px">alții: ${altii.map(r => esc(scurt(r.p)) + " " + cat(r.oreAn)).join(", ")}</div>` : ""}</td>
+        <td class="num">${cat(x.it.oreAn)}</td>
+        <td class="num"><input type="number" step="${sp ? 0.5 : 1}" min="0" value="${sp ? +(v.oreAn / cl.saptamani).toFixed(2) : v.oreAn}" style="width:62px" ${v.on ? "" : "disabled"} onchange="asoc.val[${x.i}].oreAn=${sp ? `Math.round((+this.value||0)*${cl.saptamani}*10)/10` : "+this.value||0"};renderAsoc()"><div class="muted" style="font-size:11px">${sp ? "pe săpt." : "pe an"}</div>${peste ? '<div class="rau" style="font-size:12px">peste plan</div>' : ""}</td></tr>`; }).join("")}</table></div>`;
+      let n = norma(p);
+      state.incadrare.filter(r => r.p === p && r.clasa === c && A.some(x => potriveste(r, x.it))).forEach(r => n -= r.oreAn / pondere(r));
+      A.forEach(x => { const v = asoc.val[x.i]; if(v.on) n += v.oreAn / (x.it.tip === "PIP" ? 936 : 720); });
+      const tot = A.reduce((s, x) => s + (asoc.val[x.i].on && x.it.inOrar ? asoc.val[x.i].oreAn / cl.saptamani : 0), 0);
+      h += `<p style="margin-top:10px">La ${esc(c)}: <b>${fmt(tot)} ore/săpt.</b> în orar · norma lui după salvare: <b>${procent(n)}</b> (${fmt(n)} norme).</p>`;
+    }
+  }
+  h += `<div class="row" style="margin-top:14px">${cl && cl.discipline.length ? `<button class="btn" onclick="salveazaAsoc()">Salvează încadrarea</button>` : ""}<span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+  $("#modalCont").innerHTML = h;
+}
+function salveazaAsoc(){
+  const {p, c, val} = asoc, cl = clasa(c);
+  let n = 0;
+  for(const x of acoperire(cl)){
+    const v = val[x.i];
+    // scoatem rândurile lui la această disciplină, apoi punem un singur rând cu orele alese
+    state.incadrare = state.incadrare.filter(r => !(r.p === p && r.clasa === c && potriveste(r, x.it)));
+    if(!v.on || !(v.oreAn > 0)) continue;
+    const altii = state.incadrare.filter(r => r.clasa === c && potriveste(r, x.it)).reduce((s, r) => s + r.oreAn, 0);
+    let oreAn = v.oreAn;
+    const rest = x.it.oreAn - altii;
+    if(Math.abs(oreAn - rest) < cl.saptamani * 0.05) oreAn = Math.round(rest * 100) / 100; // a luat tot ce rămânea: exact cât e în plan
+    state.incadrare.push({p, clasa:c, disciplina:x.it.d, tip:x.it.tip, post:"", oreAn, inOrar:x.it.inOrar, motiv:x.it.inOrar ? "" : (x.it.motiv || "stagiu / practică comasată"), cdl:""});
+    n++;
+  }
+  if(!state.profesori.includes(p)){ state.profesori.push(p); state.profesori.sort(ro); }
+  saveState(); inchideModal(); render(); toast(`${p} – ${c}: ${n} ${n === 1 ? "disciplină" : "discipline"} în încadrare.`);
+}
+
+/* ---------- Ani școlari ---------- */
+const ANI_KEY = "orar_ani_v1";
+function aniSalvati(){ try{ return JSON.parse(localStorage.getItem(ANI_KEY)) || []; }catch(e){ return []; } }
+function totiAnii(){ return [...new Set([...aniSalvati(), state.an])].sort(); }
+function arhiveazaAnCurent(){
+  localStorage.setItem("orar_an_" + state.an, JSON.stringify(state));
+  const L = aniSalvati(); if(!L.includes(state.an)) L.push(state.an);
+  localStorage.setItem(ANI_KEY, JSON.stringify(L.sort()));
+}
+function anUrmator(an){ const m = String(an).match(/(\d{4})\D+(\d{4})/); return m ? (+m[1] + 1) + "-" + (+m[2] + 1) : an + " (nou)"; }
+function deschideAn(an){
+  if(an === state.an) return;
+  const s = localStorage.getItem("orar_an_" + an);
+  if(!s){ toast("Nu găsesc anul " + an + " în acest browser."); return; }
+  saveStateNow(); arhiveazaAnCurent();
+  state = JSON.parse(s); migreazaDate(); undoStack = []; selClasa = selProf = selCls = selPr = null;
+  saveStateNow(); render(); toast("Ai deschis anul școlar " + an + ".");
+}
+function stergeAn(an){
+  if(an === state.an) return;
+  if(!confirm(`Ștergi definitiv anul ${an} din acest browser? Fă întâi un backup.`)) return;
+  localStorage.removeItem("orar_an_" + an);
+  localStorage.setItem(ANI_KEY, JSON.stringify(aniSalvati().filter(x => x !== an)));
+  render(); toast("Anul " + an + " a fost șters.");
+}
+function cardAni(){
+  const alti = totiAnii().filter(a => a !== state.an);
+  return `<div class="card"><h3>Ani școlari</h3>
+    <p>Anul deschis acum: <b>${esc(state.an)}</b>.${alti.length ? "" : " Nu ai alți ani salvați."}</p>
+    ${alti.map(a => `<div class="item"><span class="t">${esc(a)}</span><button class="btn sec mic" onclick="deschideAn('${jsq(a)}')">Deschide</button><button class="btn rosu mic" onclick="stergeAn('${jsq(a)}')">Șterge</button></div>`).join("")}
+    <button class="btn acc" onclick="dialogAnNou()">➕ Pregătește anul școlar următor</button>
+    <p class="muted" style="font-size:13px">Anul de acum rămâne salvat și îl poți redeschide oricând. Anul nou pornește cu orarul și încadrarea goale; tu treci clasele, disciplinele și încadrarea, iar verificările merg ca acum.</p></div>`;
+}
+function dialogAnNou(){
+  $("#modalCont").innerHTML = `<h3>Anul școlar următor</h3>
+  <label>Anul școlar nou</label><input id="anNume" value="${esc(anUrmator(state.an))}" style="width:140px">
+  <label style="display:flex;gap:6px;align-items:center;margin-top:12px"><input type="checkbox" id="anProm" checked> trec clasele în anul următor de studiu (IX → X, X → XI, XI → XII; ies clasele a XII-a și a XI-a de la profesional)</label>
+  <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anPlan" checked> clasele trecute iau disciplinele de la clasa de anul acesta cu același nume (sau aceeași calificare) din anul de studiu următor</label>
+  <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anDir" checked> păstrez diriginții</label>
+  <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anProf" checked> păstrez profesorii cu fișele lor (funcție, specialități, observații)</label>
+  <p class="muted" style="font-size:13px">Se păstrează și locațiile, programul orelor, maximul de ore pe zi, regulile și notele. Orarul și încadrarea pornesc goale. Clasele a IX-a noi le adaugi în „Clase și planuri”; disciplinele lor le poți copia din modelele anului ${esc(state.an)}.</p>
+  <div class="row" style="margin-top:14px"><button class="btn" onclick="creeazaAnNou()">Creează anul</button><span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+  $("#modal").classList.add("deschis");
+}
+function creeazaAnNou(){
+  const an = ($("#anNume").value || "").trim();
+  if(!an){ toast("Scrie anul școlar."); return; }
+  if(totiAnii().includes(an)){ toast("Anul " + an + " există deja."); return; }
+  const prom = $("#anProm").checked, plan = $("#anPlan").checked, dir = $("#anDir").checked, prof = $("#anProf").checked;
+  saveStateNow(); arhiveazaAnCurent();
+  const v = state;
+  const modele = [...v.clase.filter(c => c.discipline?.length).map(c => ({nume: c.id + " (" + v.an + ")", calificare: c.calificare, nivel: c.nivel, saptamani: c.saptamani, discipline: clone(c.discipline)})),
+    ...(v.modele || [])].slice(0, 150);
+  const clase = [];
+  if(prom) for(const c of v.clase){
+    const m = c.id.match(/^(IX|X|XI|XII)\s+(.+)$/); if(!m) continue;
+    const urm = {IX:"X", X:"XI", XI:"XII"}[m[1]];
+    if(!urm || (m[1] === "XI" && /profesional/i.test(c.nivel))) continue;
+    const id = urm + " " + m[2];
+    const model = !plan ? null : (v.clase.find(o => o.id === id && o.discipline?.length) || v.clase.find(o => o.id.startsWith(urm + " ") && o.discipline?.length && normDisc(o.calificare) === normDisc(c.calificare)));
+    clase.push({id, calificare: c.calificare, nivel: model ? model.nivel : c.nivel, locatie: c.locatie, diriginte: dir ? c.diriginte : "", saptamani: model ? model.saptamani : c.saptamani, discipline: model ? clone(model.discipline) : [], dinModel: model ? model.id : ""});
+  }
+  state = {versiune:1, an, zile: clone(v.zile || ZILE), clase, profesori: prof ? clone(v.profesori) : [], incadrare: [], orar: {},
+    clopot: clone(v.clopot), locatiiMaxOre: clone(v.locatiiMaxOre), reguli: clone(v.reguli), note: clone(v.note),
+    meta: {ultimBackup: v.meta.ultimBackup, taburiAscunse: clone(v.meta.taburiAscunse || []), corecturi: clone(v.meta.corecturi || [])},
+    fise: prof ? clone(v.fise || {}) : {}, modele};
+  migreazaDate(); sorteazaClase();
+  undoStack = []; selClasa = selProf = selCls = selPr = null;
+  saveStateNow(); inchideModal(); mergiLa("cls");
+  const cuPlan = clase.filter(c => c.discipline.length).length;
+  toast(`Am creat anul ${an}: ${clase.length} clase trecute (${cuPlan} cu discipline). Anul ${v.an} rămâne salvat.`);
+}
+
 /* ---------- TAB: Încadrare ---------- */
 function vInc(){
   const f = filtruInc, t = f.text.toLowerCase();
@@ -853,7 +1268,7 @@ function vInc(){
     <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${f.doarOrar ? "checked" : ""} onchange="filtruInc.doarOrar=this.checked;render()"> doar ore în orar</label>
     <span class="grow"></span><button class="btn mic" onclick="editInc(-1)">+ rând</button>
   </div>
-  <p class="muted">${rows.length} rânduri. Ore/săpt. = ore pe an ÷ săptămânile clasei. Rândurile „nu” (stagiu, conducere, Ghilea) nu intră în verificarea orarului.</p>
+  <p class="muted">Încadrarea se face mai ușor din „Profesori și încadrare” (pe profesor) și din „Clase și planuri” (pe clasă). Aici e tabelul complet. ${rows.length} rânduri. Ore/săpt. = ore pe an ÷ săptămânile clasei. Rândurile „nu” (stagiu, conducere, Ghilea) nu intră în verificarea orarului.</p>
   <div class="card scroll"><table><tr><th>Profesor</th><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/an</th><th class="num">Ore/săpt.</th><th>În orar</th><th></th></tr>
   ${rows.map(({r, i}) => `<tr><td>${esc(r.p)}</td><td>${esc(r.clasa)}</td><td>${esc(r.disciplina)}</td><td>${esc(r.tip)}</td><td class="num">${r.oreAn}</td><td class="num">${clasa(r.clasa) ? fmt(oreSapt(r)) : "–"}</td><td>${r.inOrar ? "da" : `<span class="muted">${esc(r.motiv || "nu")}</span>`}</td><td><button class="btn sec mic" onclick="editInc(${i})">✎</button></td></tr>`).join("")}</table></div>`;
 }
@@ -884,7 +1299,7 @@ function stergeInc(i){
 
 /* ---------- TAB: Verificări ---------- */
 function itemVer(x){
-  const merge = x.clasa ? `deschideClasa('${x.clasa}')` : (x.prof ? `deschideProf('${esc(x.prof)}')` : "");
+  const merge = x.regula === "Plan" ? `selCls='${jsq(x.clasa)}';mergiLa('cls')` : x.clasa ? `deschideClasa('${x.clasa}')` : (x.prof ? `deschideProf('${esc(x.prof)}')` : "");
   return `<div class="item niv-${x.nivel}"><span class="badge ${x.nivel === "eroare" ? "" : "galben"}">${esc(x.regula)}</span><span class="t">${esc(x.text)}</span>${merge ? `<button class="btn sec mic" onclick="${merge}">Vezi</button>` : ""}${x.prof && x.clasa ? `<button class="btn sec mic" onclick="deschideProf('${esc(x.prof)}')">Profesor</button>` : ""}</div>`;
 }
 function vVer(){
@@ -901,7 +1316,7 @@ function vVer(){
     <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${filtruVer.avertisment ? "checked" : ""} onchange="filtruVer.avertisment=this.checked;render()"> avertismente</label>
   </div>
   ${Object.keys(grupe).length ? Object.entries(grupe).map(([r, xs]) => `<div class="card"><h3>${esc(r)} <span class="muted">(${xs.length})</span></h3>${xs.map(itemVer).join("")}</div>`).join("") : `<div class="card ok">✓ Nicio problemă găsită.</div>`}
-  <p class="muted">Ce se verifică: ora 1 și ferestrele (R7), maximul de ore pe zi în fiecare locație, celule fără profesor sau fără disciplină, orele clasei față de încadrare (R8), profesori în două clase deodată, profesori în două locații în aceeași zi (R2), ferestrele profesorilor (R13), maximum 2 ore pe zi la cultura generală (R14), fără dus-întors între locații (R15), 15 minute pentru drum între locații (R16), întâi Șendriceni apoi Dorohoi (R17), orele fiecărui profesor la fiecare clasă față de încadrare.</p>`;
+  <p class="muted">Ce se verifică: ora 1 și ferestrele (R7), maximul de ore pe zi în fiecare locație, celule fără profesor sau fără disciplină, orele clasei față de încadrare (R8), profesori în două clase deodată, profesori în două locații în aceeași zi (R2), ferestrele profesorilor (R13), maximum 2 ore pe zi la cultura generală (R14), fără dus-întors între locații (R15), 15 minute pentru drum între locații (R16), întâi Șendriceni apoi Dorohoi (R17), orele fiecărui profesor la fiecare clasă față de încadrare, disciplinele din planul fiecărei clase față de încadrare (Plan).</p>`;
 }
 
 /* ---------- TAB: Reguli ---------- */
@@ -932,8 +1347,9 @@ function stergeNota(i){ if(!confirm("Ștergi nota?")) return; state.note.splice(
 function vDate(){
   const u = state.meta.ultimBackup;
   return `<h2>Date și setări</h2>
+  ${cardAni()}
   <div class="card"><h3>Backup (pentru restaurare completă)</h3>
-    <p class="muted">Ultimul backup: ${u ? new Date(u).toLocaleString("ro-RO") : "niciodată"}. Pe telefon se deschide meniul de distribuire (alege Google Drive); pe laptop se descarcă fișierul.</p>
+    <p class="muted">Ultimul backup: ${u ? new Date(u).toLocaleString("ro-RO") : "niciodată"}. Backup-ul cuprinde toți anii școlari salvați în acest browser. Pe telefon se deschide meniul de distribuire (alege Google Drive); pe laptop se descarcă fișierul.</p>
     <div class="row"><button class="btn" onclick="backupJSON()">💾 Fă backup (JSON)</button>
     <label class="btn sec" style="margin:0;color:var(--infield)">📂 Restaurează din backup<input type="file" accept=".json,application/json" style="display:none" onchange="importJSON(this.files[0])"></label></div>
   </div>
@@ -947,9 +1363,9 @@ function vDate(){
     ${state.clase.map(c => `<div><label>${c.id}</label><input type="number" value="${c.saptamani}" style="width:80px" onchange="clasa('${c.id}').saptamani=+this.value||c.saptamani;saveState();render()"></div>`).join("")}</div></div>
   <div class="card"><h3>Taburi afișate</h3><div class="row">
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
-  <div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
-    <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>
-  <p class="muted">Aplicația ORAR · versiunea 2.0 · datele se păstrează în acest browser.</p>`;
+  ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
+    <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
+  <p class="muted">Aplicația ORAR · versiunea 2.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
@@ -972,7 +1388,9 @@ async function trimiteFisier(blob, nume){
 function dataFis(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 async function backupJSON(){
   state.meta.ultimBackup = Date.now(); saveStateNow();
-  await trimiteFisier(new Blob([JSON.stringify(state, null, 1)], {type:"application/json"}), `orar-backup-${dataFis()}.json`);
+  const ani = {};
+  aniSalvati().filter(a => a !== state.an).forEach(a => { try{ const x = localStorage.getItem("orar_an_" + a); if(x) ani[a] = JSON.parse(x); }catch(e){} });
+  await trimiteFisier(new Blob([JSON.stringify({...state, _ani: ani}, null, 1)], {type:"application/json"}), `orar-backup-${dataFis()}.json`);
   render(); toast("Backup creat.");
 }
 function importJSON(f){
@@ -983,24 +1401,26 @@ function importJSON(f){
       const s = JSON.parse(rd.result);
       if(!s.orar || !s.clase || !s.incadrare) throw new Error("fișierul nu e un backup ORAR");
       if(!confirm("Înlocuiești datele actuale cu cele din backup?")) return;
-      pushUndo(); state = s; migreazaDate(); saveState(); render(); toast("Backup restaurat.");
+      const ani = s._ani || {}; delete s._ani;
+      for(const [a, x] of Object.entries(ani)){ if(a === s.an) continue; localStorage.setItem("orar_an_" + a, JSON.stringify(x)); const L = aniSalvati(); if(!L.includes(a)){ L.push(a); localStorage.setItem(ANI_KEY, JSON.stringify(L.sort())); } }
+      pushUndo(); state = s; migreazaDate(); selClasa = selProf = selCls = selPr = null; saveState(); render(); toast("Backup restaurat" + (Object.keys(ani).length ? ` (cu ${Object.keys(ani).length} ani salvați)` : "") + ".");
     }catch(e){ toast("Nu am putut citi backup-ul: " + e.message); }
   };
   rd.readAsText(f);
 }
 
 /* ---------- tipărire ---------- */
-const ANTET = `Liceul Tehnologic „Al. Vlahuță” Șendriceni · An școlar 2026–2027`;
+const antet = () => `Liceul Tehnologic „Al. Vlahuță” Șendriceni · An școlar ${String(state.an || "").replace("-", "–")}`;
 function tipareste(html, pdf){
   $("#printArea").innerHTML = html;
   if(pdf) toast("În fereastra de tipărire alege „Salvează ca PDF”.");
   setTimeout(() => window.print(), pdf ? 600 : 50);
 }
 function tiparesteProf(lista, pdf){
-  tipareste(lista.map(p => `<div class="pagina"><p style="margin:0">${ANTET}</p><h2>Orar individual – prof. ${esc(p)}</h2>${grilaProf(p, {print:true})}<p style="font-size:9px">P1 = prima perioadă, P2 = a doua perioadă, ~ = alternanță. Generat ${azi()}.</p></div>`).join(""), pdf);
+  tipareste(lista.map(p => `<div class="pagina"><p style="margin:0">${antet()}</p><h2>Orar individual – prof. ${esc(p)}</h2>${grilaProf(p, {print:true})}<p style="font-size:9px">P1 = prima perioadă, P2 = a doua perioadă, ~ = alternanță. Generat ${azi()}.</p></div>`).join(""), pdf);
 }
 function tiparesteClase(lista, pdf){
-  tipareste(lista.map(c => { const cl = clasa(c); return `<div class="pagina"><p style="margin:0">${ANTET}</p><h2>Orarul clasei ${c} – ${esc(cl.calificare)} (${cl.locatie})</h2><p style="margin:0 0 4px">Diriginte: ${esc(cl.diriginte)}</p>${grilaClasa(c, {print:true})}</div>`; }).join(""), pdf);
+  tipareste(lista.map(c => { const cl = clasa(c); return `<div class="pagina"><p style="margin:0">${antet()}</p><h2>Orarul clasei ${c} – ${esc(cl.calificare)} (${cl.locatie})</h2><p style="margin:0 0 4px">Diriginte: ${esc(cl.diriginte)}</p>${grilaClasa(c, {print:true})}</div>`; }).join(""), pdf);
 }
 
 /* ---------- export Excel (xlsx scris direct, fără biblioteci – merge și offline) ---------- */
@@ -1120,6 +1540,8 @@ function construiesteExcel(){
   }
   const ri = [[B("Profesor"), B("Clasa"), B("Disciplina"), B("Tip"), B("Ore/an"), B("Ore/săpt."), B("În orar"), B("Motiv")]];
   state.incadrare.forEach(r => ri.push([r.p, r.clasa, r.disciplina, r.tip, r.oreAn, clasa(r.clasa) ? Math.round(oreSapt(r)*100)/100 : "", r.inOrar ? "da" : "nu", r.motiv || ""]));
+  const rpl = [[B("Clasa"), B("Calificare"), B("Disciplina"), B("Tip"), B("Ore/săpt."), B("Ore/an"), B("În orar"), B("Încadrat"), B("Rămas (ore/an)")]];
+  state.clase.forEach(cl => acoperire(cl).forEach(x => rpl.push([cl.id, cl.calificare, x.it.d, x.it.tip, Math.round(x.it.oreAn / cl.saptamani * 100) / 100, x.it.oreAn, x.it.inOrar ? "da" : "nu", x.R.map(r => r.p + " " + fmt(r.oreAn / cl.saptamani)).join("; "), x.rest])));
   const rv = [[B("Nivel"), B("Regula"), B("Problema")]];
   verifica().forEach(x => rv.push([x.nivel, x.regula, x.text]));
   return xlsx([
@@ -1127,6 +1549,7 @@ function construiesteExcel(){
     foaiePlansa("Dorohoi"),
     {name:"Orar pe clase", rows:rc, widths:[6,34,34,34,34,34]},
     {name:"Orar pe profesori", rows:rp, widths:[6,38,38,38,38,38]},
+    {name:"Clase si planuri", rows:rpl, widths:[8,30,46,8,9,9,8,46,12]},
     {name:"Incadrare", rows:ri, widths:[30,8,50,8,9,9,8,26]},
     {name:"Verificari", rows:rv, widths:[13,14,110]}
   ]);

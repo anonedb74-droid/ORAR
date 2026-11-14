@@ -16,6 +16,8 @@ Nu sunt necesare pentru rularea aplicației (aceasta e doar `index.html` din ră
 | `inc_data.py` | Transcrierea încadrării scanate (varianta veche), pentru comparație. |
 | `test14.py` | Test cu Playwright: verificări, aplicarea reorganizării, revenirea. |
 
+Versiunea 2.1 (anul următor, fără Claude): taburile „Clase și planuri” (clasa cu disciplinele planului-cadru, ore/săpt. ↔ ore/an, copiere de la altă clasă sau din modelele anului trecut), „Profesori și încadrare” (fișa profesorului cu funcția și specialitățile; „Asociază o clasă” propune disciplinele din specialități cu orele rămase, se pot schimba de mână; % din normă), verificarea „Plan” (ore neîncadrate sau peste plan) și „Ani școlari” în „Date și setări” (anul următor: clasele trec IX→X→XI→XII, orarul și încadrarea pornesc goale; anii vechi rămân în `orar_an_<an>`; backup-ul JSON îi cuprinde pe toți în `_ani`).
+
 Construire:
 ```
 python3 -c "import json;s=open('dev/index.src.html').read();d=open('dev/data_initial.json').read();p=open('dev/propunere_v2.0.json').read();open('index.html','w').write(s.replace('/*__DATA__*/null',d.replace('</','<\\/')).replace('/*__PROPUNERE__*/null',p.replace('</','<\\/')))"
