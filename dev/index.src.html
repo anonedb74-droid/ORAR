@@ -1007,8 +1007,8 @@ function fisaClasa(cl){
     ${(() => { const V = A.filter(x => (filtCat === "toate" || categ(x.it, cl) === filtCat) && (filtStare === "toate" || (filtStare === "neatr" ? x.rest > 0.5 : x.rest <= 0.5)));
       const so = V.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0), sa = V.reduce((s, x) => s + x.it.oreAn, 0), sr = V.reduce((s, x) => s + Math.max(0, x.rest), 0);
       return `<div class="scroll"><table><tr><th>Disciplina</th><th>Componenta</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th title="Bifat = orele se fac în orarul săptămânal; debifat = stagii, practică comasată, conducere individuală">În orar săpt.</th><th>Atribuită (ore/săpt.)</th><th class="num">Neatribuit</th><th></th></tr>
-    ${V.map(x => `<tr><td><input list="dlDiscAll" value="${esc(x.it.d)}" style="min-width:200px;width:100%" onchange="setDisc('${jsq(c)}',${x.i},'d',this.value)">${x.rest > 0.5 ? `<div style="margin-top:4px"><button class="btn mic" onclick="alegeProfDisc('${jsq(c)}',${x.i})">Atribuie ${fmt(x.rest / cl.saptamani)} ore/săpt.</button></div>` : ""}</td>
-      <td>${(() => { const cv = compDe(x.it, cl), opt = [...new Set([...(planNou(cl) ? ["TC","CS","CDEOS"] : ["TC","CD","CDL"]), cv])]; return `<select title="${esc(NUME_GRUP[grupComp(cv)])}" onchange="setDisc('${jsq(c)}',${x.i},'comp',this.value)">${opt.map(o => `<option ${o === cv ? "selected" : ""}>${o}</option>`).join("")}</select>${x.it.comp ? "" : '<div class="muted" style="font-size:11px">propus</div>'}`; })()}</td>
+    ${V.map(x => `<tr><td><input list="dlDiscAll" value="${esc(x.it.d)}" style="min-width:200px;width:100%" onchange="setDisc('${jsq(c)}',${x.i},'d',this.value)">${x.rest > 0.5 ? `<div style="margin-top:4px"><button class="btn mic" onclick="alegeProfDisc('${jsq(c)}',${x.i})">Atribuie · ${fmt(x.rest / cl.saptamani)}/săpt.</button></div>` : ""}</td>
+      <td>${(() => { const cv = compDe(x.it, cl), opt = [...new Set([...(planNou(cl) ? ["TC","CS","CDEOS"] : ["TC","CD","CDL"]), "CDS", cv])]; return `<select title="${esc(NUME_GRUP[grupComp(cv)])}" onchange="setDisc('${jsq(c)}',${x.i},'comp',this.value)">${opt.map(o => `<option value="${o}" ${o === cv ? "selected" : ""}>${o === "CDS" ? "CDȘ" : o}</option>`).join("")}</select>${x.it.comp ? "" : '<div class="muted" style="font-size:11px">propus</div>'}`; })()}</td>
       <td><select onchange="setDisc('${jsq(c)}',${x.i},'tip',this.value)">${TIPURI.map(t => `<option ${t === x.it.tip ? "selected" : ""}>${t}</option>`).join("")}</select></td>
       <td class="num"><input type="number" step="0.5" min="0" value="${+(x.it.oreAn / cl.saptamani).toFixed(2)}" style="width:72px" onchange="setDisc('${jsq(c)}',${x.i},'sapt',this.value)"></td>
       <td class="num"><input type="number" min="0" value="${x.it.oreAn}" style="width:78px" onchange="setDisc('${jsq(c)}',${x.i},'an',this.value)"></td>
@@ -1018,9 +1018,10 @@ function fisaClasa(cl){
       <td><button class="btn sec mic" onclick="stergeDisc('${jsq(c)}',${x.i})">✕</button></td></tr>`).join("") || `<tr><td colspan="9" class="muted">${filtStare === "neatr" ? "✓ Nicio oră neatribuită aici." : "Nicio disciplină."}</td></tr>`}
     <tr><th>Total afișat (în orar / pe an)</th><th></th><th></th><th class="num">${fmt(so / cl.saptamani)}</th><th class="num">${fmt(sa)}</th><th colspan="2"></th><th class="num">${sr > 0.5 ? fmt(sr / cl.saptamani) + "/săpt." : "✓"}</th><th></th></tr></table></div>`; })()}
     <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">📋 Lipește din Excel</summary>
-      <p class="muted" style="font-size:13px">În Excel selectezi rândurile planului, în ordinea coloanelor <b>Disciplina · Componenta · Tip · Ore/săpt. · Ore/an · În orar</b> (sau cu rândul de titluri deasupra, în orice ordine), dai Copy și le lipești aici. Ajunge Disciplina + Componenta + Ore/săpt.; Ore/an se calculează (× ${cl.saptamani} săpt.).</p>
+      <p class="muted" style="font-size:13px">Din Excelul <a href="Constructor%20plan-cadru.xlsx" download>„Constructor plan-cadru”</a>: în foaia „Plan clasă” apeși Ctrl + A, Copy, apoi lipești aici. Aplicația ia singură doar disciplinele (cu câte un rând pentru fiecare componentă completată) și numărul de săptămâni; titlurile, totalurile și verificarea le lasă deoparte. Merge și o listă simplă: Disciplina · Componenta · Tip · Ore/săpt. · Ore/an · În orar.</p>
       <textarea id="lipPlan" rows="6" style="width:100%;font-family:monospace;font-size:12px" placeholder="Limba și literatura română	TC	CG	3&#10;Matematică	TC	CG	2&#10;Matematică	CD	CG	1"></textarea>
-      <div class="row" style="margin-top:6px"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="lipInl" checked> înlocuiesc disciplinele clasei (altfel le adaug / actualizez)</label><span class="grow"></span><button class="btn mic" onclick="lipesteInClasa('${jsq(c)}')">Trece în plan</button></div>
+      <div class="row" style="margin-top:6px"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="lipInl" checked> înlocuiesc disciplinele clasei (altfel le adaug / actualizez)</label></div>
+      <div class="row" style="margin-top:6px"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="lipModel" checked> salvez și ca model, cu numele</label><input id="lipModelNume" value="${esc(c + " – " + (eticheta(cl) || "plan") + " (" + state.an + ")")}" style="min-width:240px" class="grow"><button class="btn mic" onclick="lipesteInClasa('${jsq(c)}')">Trece în plan</button></div>
     </details>
     <div class="row" style="margin-top:10px"><button class="btn mic" onclick="adaugaDisc('${jsq(c)}')">+ disciplină</button><span class="grow"></span>
       <select id="srsPlan" style="max-width:260px"><option value="">Copiază disciplinele de la…</option>
@@ -1041,9 +1042,9 @@ function planNou(cl){
 }
 const compImplicit = (it, cl) => (!it.inOrar || /aprofund|stagi|comasat|insertie|cdl|cdeos/i.test(normDisc(it.d) + " " + (it.d || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) ? (planNou(cl) ? "CDEOS" : "CDL") : (it.tip === "DSP" || it.tip === "PIP") ? (planNou(cl) ? "CS" : "CD") : "TC";
 const compDe = (it, cl) => it.comp || compImplicit(it, cl);
-const grupComp = c => c === "TC" ? "TC" : (c === "CD" || c === "CS") ? "CS" : "CDL";
+const grupComp = c => c === "TC" ? "TC" : (c === "CD" || c === "CS") ? "CS" : "CDL"; // CDȘ (curriculum la decizia școlii) intră la grupul CDL / CDEOS / CDȘ
 const categ = (it, cl) => grupComp(compDe(it, cl));
-const NUME_GRUP = {TC:"Trunchi comun (TC)", CS:"Curriculum diferențiat / de specialitate (CD / CS)", CDL:"Curriculum local / la decizia elevului (CDL / CDEOS)"};
+const NUME_GRUP = {TC:"Trunchi comun (TC)", CS:"Curriculum diferențiat / de specialitate (CD / CS)", CDL:"Curriculum local / la decizia elevului sau a școlii (CDL / CDEOS / CDȘ)"};
 const SCURT_GRUP = {TC:"Trunchi comun (TC)", CS:"CD / CS", CDL:"CDL / CDEOS"};
 function cardSumarClasa(cl, A){
   const rand = (k, titlu) => {
@@ -1051,14 +1052,17 @@ function cardSumarClasa(cl, A){
     const so = X.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0), sa = X.reduce((s, x) => s + x.it.oreAn, 0);
     const at = X.reduce((s, x) => s + Math.min(x.al, x.it.oreAn), 0), ne = X.reduce((s, x) => s + Math.max(0, x.rest), 0);
     const tag = k === "tot" ? "th" : "td";
-    return `<tr${k === "tot" ? "" : ` class="click" onclick="filtCat='${k}';filtStare='toate';render()"`}><${tag}>${titlu}</${tag}><${tag} class="num">${X.length}</${tag}><${tag} class="num">${fmt(so / cl.saptamani)}</${tag}><${tag} class="num">${fmt(sa)}</${tag}><${tag} class="num">${fmt(at)}</${tag}><${tag} class="num ${ne > 0.5 ? "rau" : "ok"}">${ne > 0.5 ? fmt(ne) : "✓"}</${tag}></tr>`;
+    const ctl = (cl.control || {})[k], ok = ctl == null || ctl === "" ? null : Math.abs(+ctl - sa) < 0.5;
+    return `<tr${k === "tot" ? "" : ` class="click" onclick="filtCat='${k}';filtStare='toate';render()"`}><${tag}>${titlu}</${tag}><${tag} class="num">${X.length}</${tag}><${tag} class="num">${fmt(so / cl.saptamani)}</${tag}><${tag} class="num">${fmt(sa)}</${tag}><${tag} class="num">${fmt(at)}</${tag}><${tag} class="num ${ne > 0.5 ? "rau" : "ok"}">${ne > 0.5 ? fmt(ne) : "✓"}</${tag}>
+      <td class="num" onclick="event.stopPropagation()"><input type="number" min="0" value="${ctl ?? ""}" placeholder="din plan" style="width:80px" onchange="setControl('${jsq(cl.id)}','${k}',this.value)"></td><td class="${ok == null ? "muted" : ok ? "ok" : "rau"}" style="white-space:nowrap">${ok == null ? "–" : ok ? "✓ corespunde" : `✗ diferă (${fmt(sa - +ctl)})`}</td></tr>`;
   };
   return `<div class="card"><h3>Totalul orelor din planul clasei</h3><div class="scroll"><table>
-    <tr><th>Categoria</th><th class="num">Disc.</th><th class="num">Ore/ săpt.</th><th class="num">Ore/an</th><th class="num">Atri­buite</th><th class="num">Neatri­buite</th></tr>
+    <tr><th>Categoria</th><th class="num">Disc.</th><th class="num">Ore/ săpt.</th><th class="num">Ore/an</th><th class="num">Atri­buite</th><th class="num">Neatri­buite</th><th class="num" title="Totalul de ore pe an din planul-cadru, scris de tine">Planul-cadru (ore/an)</th><th>Verifică din planul-cadru</th></tr>
     ${rand("TC", "Trunchi comun (TC)")}${rand("CS", planNou(cl) ? "Curriculum de specialitate (CS)" : "Curriculum diferențiat (CD)")}${rand("CDL", planNou(cl) ? "La decizia elevului (CDEOS)" : "Dezvoltare locală (CDL)")}${rand("tot", "Total clasă")}
-  </table></div><p class="muted" style="font-size:12px;margin:6px 0 0">${planNou(cl) ? "Planul-cadru nou (OME 4350/2025): TC – trunchi comun; CS – curriculum de specialitate (inclusiv matematică, fizică, chimie, limba modernă 2 aplicate); CDEOS – curriculum la decizia elevului din oferta școlii (stagii de pregătire practică, aprofundare și inserție profesională)." : "Planul-cadru vechi: TC – trunchi comun; CD – curriculum diferențiat; CDL – curriculum în dezvoltare locală (practica comasată, stagiile)."} Componenta fiecărei discipline o alegi în tabelul de mai jos; dacă o disciplină are ore în două componente (de exemplu matematică 2 TC + 1 CD), o treci pe două rânduri. Ore/săpt. = în orar; atribuite și neatribuite = ore pe an. Atinge un rând ca să vezi doar disciplinele lui.</p></div>`;
+  </table></div><p class="muted" style="font-size:12px;margin:6px 0 0">${planNou(cl) ? "Planul-cadru nou (OME 4350/2025): TC – trunchi comun; CS – curriculum de specialitate (inclusiv matematică, fizică, chimie, limba modernă 2 aplicate); CDEOS – curriculum la decizia elevului din oferta școlii (stagii de pregătire practică, aprofundare și inserție profesională)." : "Planul-cadru vechi: TC – trunchi comun; CD – curriculum diferențiat; CDL – curriculum în dezvoltare locală (practica comasată, stagiile)."} Componenta fiecărei discipline o alegi în tabelul de mai jos; dacă o disciplină are ore în două componente (de exemplu matematică 2 TC + 1 CD), o treci pe două rânduri. Ore/săpt. = în orar; atribuite și neatribuite = ore pe an. Atinge un rând ca să vezi doar disciplinele lui. În „Planul-cadru (ore/an)” scrii totalurile din planul-cadru (de exemplu, la X tehnic: TC 520, CS 286, CDEOS 300, total 1.106), iar aplicația le compară cu planul clasei.</p></div>`;
 }
 /* „Atribuie” de la o disciplină neatribuită: alegi profesorul (sus cei care o au la specialități), apoi se deschide asocierea cu disciplina bifată. */
+function setControl(c, k, v){ const cl = clasa(c); cl.control ??= {}; if(v === "") delete cl.control[k]; else cl.control[k] = +v; saveState(); render(); }
 function alegeProfDisc(c, i){
   const it = clasa(c).discipline[i];
   const spec = p => (state.fise[p]?.specialitati || []).some(s => normDisc(s) === normDisc(it.d));
@@ -1609,27 +1613,64 @@ function hartaColoane(cap){
   return m;
 }
 /* rânduri (tablou de tablouri) → elemente de plan; fără cap de tabel se ia ordinea Disciplina, Componenta, Tip, Ore/săpt., Ore/an, În orar */
-function randuriPlan(rows, cuClasa){
+/* Citește rândurile unui plan lipit sau importat. Caută singur rândul de titluri (oriunde în pagină) și se oprește la „Total…”.
+   Două forme: listă (Disciplina, Componenta, Tip, Ore/săpt., Ore/an, În orar) sau ca în planul-cadru, cu câte o coloană pe componentă
+   (TC · CD/CS · CDȘ · CDL/CDEOS ore/săpt. · CDL/CDEOS ore/an). Întoarce și numărul de săptămâni, dacă îl găsește deasupra tabelului. */
+function randuriPlan(rows, cuClasa, cl){
   rows = rows.filter(r => r && r.some(x => String(x ?? "").trim()));
-  let m, start = 0;
-  if(rows.length && rows[0].some(x => /disciplin|modul/.test(fara(x)))){ m = hartaColoane(rows[0]); start = 1; }
-  else m = cuClasa ? {clasa:0, d:1, comp:2, tip:3, sapt:4, an:5, orar:6, sapts:7} : {d:0, comp:1, tip:2, sapt:3, an:4, orar:5};
+  let m = null, start = 0, sapts = 0;
+  const ecap = x => { const t = fara(x); return t.length < 40 && /^(aria curriculara\s*\/\s*)?(disciplina|modul)/.test(t); };
+  const hi = rows.findIndex(r => r.some(ecap));
+  for(const r of rows.slice(0, hi < 0 ? 0 : hi)) r.forEach((x, i) => { if(/saptaman/.test(fara(x))){ const v = r.slice(i + 1).map(numar).find(v => v > 0); if(v) sapts = v; } });
+  let lat = null;
+  if(hi >= 0){
+    const cap = rows[hi].map(fara);
+    if(cap.some(t => t === "tc" || /^tc\b/.test(t))){
+      lat = {};
+      cap.forEach((t, i) => {
+        if(/disciplin|modul/.test(t)) lat.d ??= i;
+        else if(/^tip/.test(t)) lat.tip ??= i;
+        else if(/^(clasa|plan|model)/.test(t)) lat.clasa ??= i;
+        else if(/cdl|cdeos/.test(t)) { if(/\ban\b|\/an|pe an/.test(t)) lat.cdlAn ??= i; else lat.cdlSapt ??= i; }
+        else if(/^cds|cd[sș]\b|decizia scolii/.test(t) && !/cd\s*\/\s*cs/.test(t)) lat.cds ??= i;
+        else if(/cd\s*\/\s*cs|^cs\b|^cd\b|specialitate|diferentiat/.test(t)) lat.cs ??= i;
+        else if(t === "tc" || /^tc\b/.test(t)) lat.tc ??= i;
+      });
+    } else m = hartaColoane(rows[hi]);
+    start = hi + 1;
+  } else m = cuClasa ? {clasa:0, d:1, comp:2, tip:3, sapt:4, an:5, orar:6, sapts:7} : {d:0, comp:1, tip:2, sapt:3, an:4, orar:5};
+  const nou = cl ? planNou(cl) : true;
   const out = [];
   for(const r of rows.slice(start)){
+    const prim = fara(r.find(x => String(x ?? "").trim()) || "");
+    if(/^(total|din planul|verific|control)/.test(prim)) break;
+    if(lat){
+      const g = k => lat[k] == null ? "" : String(r[lat[k]] ?? "").trim();
+      const d = g("d").replace(/\s+/g, " "); if(!d) continue;
+      let tip = g("tip").toUpperCase().replace(/\s/g, ""); if(!TIPURI.includes(tip)) tip = "";
+      const baza = {clasa: g("clasa"), d, tip, sapt: 0, an: 0, sapts: 0, orar: null};
+      if(numar(g("tc"))) out.push({...baza, comp:"TC", sapt: numar(g("tc"))});
+      if(numar(g("cs"))) out.push({...baza, comp: nou ? "CS" : "CD", sapt: numar(g("cs"))});
+      if(numar(g("cds"))) out.push({...baza, comp:"CDS", sapt: numar(g("cds"))});
+      if(numar(g("cdlSapt"))) out.push({...baza, comp: nou ? "CDEOS" : "CDL", sapt: numar(g("cdlSapt")), orar: true});
+      if(numar(g("cdlAn"))) out.push({...baza, comp: nou ? "CDEOS" : "CDL", an: numar(g("cdlAn")), orar: false});
+      continue;
+    }
     const g = k => m[k] == null ? "" : String(r[m[k]] ?? "").trim();
     const d = g("d").replace(/\s+/g, " "); if(!d) continue;
-    let comp = g("comp").toUpperCase().replace(/[^A-Z]/g, ""); if(!["TC","CD","CS","CDL","CDEOS"].includes(comp)) comp = "";
+    let comp = g("comp").toUpperCase().replace(/[^A-Z]/g, ""); if(!["TC","CD","CS","CDS","CDL","CDEOS"].includes(comp)) comp = "";
     let tip = g("tip").toUpperCase().replace(/\s/g, ""); if(!TIPURI.includes(tip)) tip = "";
     const orarTxt = g("orar");
     out.push({clasa: g("clasa"), d, comp, tip, sapt: numar(g("sapt")), an: numar(g("an")), sapts: numar(g("sapts")), orar: orarTxt === "" ? null : /^(da|d|1|x|true|y)/i.test(orarTxt)});
   }
+  if(sapts) out.forEach(x => x.sapts ||= sapts);
   return out;
 }
 function elementPlan(x, sapts){
   const loc = x.comp === "CDL" || x.comp === "CDEOS";
   const inOrar = x.comp === "TC" ? true : x.orar != null ? x.orar : !(loc && !x.sapt);
   const nd = fara(x.d);
-  const tip = x.tip || (/dirigen/.test(nd) ? "O-DIRIG" : /consilier|dezvoltare personala/.test(nd) ? "O-CO" : x.comp === "TC" || /aprofund|matemat|fizic|chimi|biolog|limba|englez|francez|german|romana|istori|geograf/.test(nd) ? "CG" : loc && !inOrar ? "PIP" : x.comp ? "DSP" : "CG");
+  const tip = x.tip || (/dirigen/.test(nd) ? "O-DIRIG" : /consilier|dezvoltare personala/.test(nd) ? "O-CO" : x.comp === "TC" || x.comp === "CDS" || /aprofund|matemat|fizic|chimi|biolog|limba|englez|francez|german|romana|istori|geograf/.test(nd) ? "CG" : loc && !inOrar ? "PIP" : x.comp ? "DSP" : "CG");
   const oreAn = x.an || Math.round(x.sapt * sapts * 10) / 10;
   return {d: x.d, comp: x.comp || undefined, tip, oreAn, inOrar, motiv: inOrar ? "" : "stagiu / practică comasată / individual"};
 }
@@ -1679,14 +1720,22 @@ async function importPlanCadru(f){
   saveState(); render(); toast(`Am importat ${n} discipline: ${cls.length} clase, ${mod.length} modele.`);
 }
 function lipesteInClasa(c){
+  const cl = clasa(c);
   const t = ($("#lipPlan").value || "").replace(/\r/g, "");
   const rows = t.split("\n").map(l => l.split("\t"));
-  const X = randuriPlan(rows, false);
-  if(!X.length){ toast("Nu am găsit rânduri. Copiază din Excel coloanele Disciplina, Componenta, Tip, Ore/săpt., Ore/an, În orar."); return; }
-  const inl = $("#lipInl").checked, cl = clasa(c);
-  if(inl && cl.discipline.length && !confirm(`Înlocuiești cele ${cl.discipline.length} discipline ale clasei ${c} cu ${X.length} rânduri lipite?`)) return;
+  const X = randuriPlan(rows, false, cl);
+  if(!X.length){ toast("Nu am găsit discipline. Selectează toată foaia „Plan clasă” din Excel (Ctrl + A), copiaz-o și lipește-o aici."); return; }
+  const inl = $("#lipInl").checked;
+  if(inl && cl.discipline.length && !confirm(`Înlocuiești cele ${cl.discipline.length} discipline ale clasei ${c} cu ${X.length} rânduri din planul lipit?`)) return;
   const n = aplicaPlanClasa(cl, X, inl);
-  saveState(); render(); toast(`Am trecut ${n} discipline la ${c}.`);
+  let msg = `Am trecut ${n} rânduri la ${c}`;
+  if($("#lipModel")?.checked){
+    const nume = ($("#lipModelNume").value || "").trim() || `${c} (${state.an})`;
+    state.modele = (state.modele || []).filter(m => m.nume !== nume);
+    state.modele.unshift({nume, calificare: cl.calificare || "", domeniu: cl.domeniu || "", profil: cl.profil || "", nivel: cl.nivel, saptamani: cl.saptamani, discipline: clone(cl.discipline)});
+    msg += ` și l-am salvat ca model „${nume}”`;
+  }
+  saveState(); render(); toast(msg + ".");
 }
 
 /* ---------- Ani școlari ---------- */
@@ -1881,7 +1930,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.1 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
