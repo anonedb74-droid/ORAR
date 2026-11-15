@@ -991,7 +991,7 @@ function fisaClasa(cl){
     <div class="row" style="margin-bottom:10px"><span class="muted" style="font-size:13px">Starea:</span>
       ${[["toate","Toate"],["neatr","Doar neatribuite"],["atr","Doar atribuite"]].map(([k, t]) => `<button class="btn mic ${filtStare === k ? "" : "sec"}" onclick="filtStare='${k}';render()">${t}</button>`).join("")}
     </div>
-    <p class="muted" style="font-size:13px">Completezi ore/săpt. sau ore/an – cealaltă se calculează (ore/an = ore/săpt. × ${cl.saptamani} săptămâni). Pentru stagii, practica comasată sau conducerea individuală debifezi „în orar”: orele intră în normă, dar nu în orarul săptămânal. O disciplină dată unui profesor apare „atribuită” și dispare din „Doar neatribuite”; dacă i-ai dat doar o parte din ore, rămâne acolo cu orele rămase.</p>
+    <p class="muted" style="font-size:13px">Completezi ore/săpt. sau ore/an – cealaltă se calculează (ore/an = ore/săpt. × ${cl.saptamani} săptămâni). „În orar săpt.”: la trunchiul comun (TC) e mereu „da”; la celelalte componente debifezi pentru stagii, practica comasată sau conducerea individuală – orele intră în normă, dar nu în orarul săptămânal. O disciplină dată unui profesor apare „atribuită” și dispare din „Doar neatribuite”; dacă i-ai dat doar o parte din ore, rămâne acolo cu orele rămase.</p>
     ${(() => { const V = A.filter(x => (filtCat === "toate" || categ(x.it, cl) === filtCat) && (filtStare === "toate" || (filtStare === "neatr" ? x.rest > 0.5 : x.rest <= 0.5)));
       const so = V.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0), sa = V.reduce((s, x) => s + x.it.oreAn, 0), sr = V.reduce((s, x) => s + Math.max(0, x.rest), 0);
       return `<div class="scroll"><table><tr><th>Disciplina</th><th>Componenta</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th title="Bifat = orele se fac în orarul săptămânal; debifat = stagii, practică comasată, conducere individuală">În orar săpt.</th><th>Atribuită (ore/săpt.)</th><th class="num">Neatribuit</th><th></th></tr>
@@ -1000,7 +1000,7 @@ function fisaClasa(cl){
       <td><select onchange="setDisc('${jsq(c)}',${x.i},'tip',this.value)">${TIPURI.map(t => `<option ${t === x.it.tip ? "selected" : ""}>${t}</option>`).join("")}</select></td>
       <td class="num"><input type="number" step="0.5" min="0" value="${+(x.it.oreAn / cl.saptamani).toFixed(2)}" style="width:72px" onchange="setDisc('${jsq(c)}',${x.i},'sapt',this.value)"></td>
       <td class="num"><input type="number" min="0" value="${x.it.oreAn}" style="width:78px" onchange="setDisc('${jsq(c)}',${x.i},'an',this.value)"></td>
-      <td style="text-align:center"><input type="checkbox" ${x.it.inOrar ? "checked" : ""} onchange="setDisc('${jsq(c)}',${x.i},'inOrar',this.checked)"></td>
+      <td style="text-align:center">${categ(x.it, cl) === "TC" && x.it.inOrar ? '<span class="muted" title="Orele din trunchiul comun se fac întotdeauna în orarul săptămânal">da</span>' : `<input type="checkbox" ${x.it.inOrar ? "checked" : ""} onchange="setDisc('${jsq(c)}',${x.i},'inOrar',this.checked)">`}</td>
       <td style="font-size:13px">${x.R.length ? `${x.rest <= 0.5 ? '<span class="ok">✓ atribuită</span>' : '<span class="muted">parțial</span>'}<br>` : '<span class="rau">neatribuită</span>'}${x.R.map(r => `<a href="#" onclick="deschideFisaProf('${jsq(r.p)}');return false">${esc(scurt(r.p))}</a> ${fmt(r.oreAn / cl.saptamani)}`).join("<br>")}</td>
       <td class="num ${Math.abs(x.rest) > 0.5 ? "rau" : "ok"}">${x.rest > 0.5 ? `${fmt(x.rest / cl.saptamani)}/săpt.<div style="font-size:11px">${fmt(x.rest)}/an</div>` : x.rest < -0.5 ? `peste plan ${fmt(-x.rest)}/an` : "✓"}</td>
       <td><button class="btn sec mic" onclick="stergeDisc('${jsq(c)}',${x.i})">✕</button></td></tr>`).join("") || `<tr><td colspan="9" class="muted">${filtStare === "neatr" ? "✓ Nicio oră neatribuită aici." : "Nicio disciplină."}</td></tr>`}
@@ -1096,7 +1096,7 @@ function setDisc(c, i, k, v){
   const R = acoperire(cl)[i].R;
   if(k === "d"){ v = v.trim(); if(!v) return render(); it.d = v; R.forEach(r => r.disciplina = v); }
   else if(k === "tip"){ it.tip = v; R.forEach(r => r.tip = v); }
-  else if(k === "comp"){ it.comp = v; R.forEach(r => r.comp = v); }
+  else if(k === "comp"){ it.comp = v; R.forEach(r => r.comp = v); if(v === "TC" && !it.inOrar){ it.inOrar = true; it.motiv = ""; R.forEach(r => { r.inOrar = true; r.motiv = ""; }); } }
   else if(k === "sapt") it.oreAn = Math.round((+v || 0) * cl.saptamani * 10) / 10;
   else if(k === "an") it.oreAn = +v || 0;
   else if(k === "inOrar"){
@@ -1615,7 +1615,7 @@ function randuriPlan(rows, cuClasa){
 }
 function elementPlan(x, sapts){
   const loc = x.comp === "CDL" || x.comp === "CDEOS";
-  const inOrar = x.orar != null ? x.orar : !(loc && !x.sapt);
+  const inOrar = x.comp === "TC" ? true : x.orar != null ? x.orar : !(loc && !x.sapt);
   const nd = fara(x.d);
   const tip = x.tip || (/dirigen/.test(nd) ? "O-DIRIG" : /consilier|dezvoltare personala/.test(nd) ? "O-CO" : x.comp === "TC" || /aprofund|matemat|fizic|chimi|biolog|limba|englez|francez|german|romana|istori|geograf/.test(nd) ? "CG" : loc && !inOrar ? "PIP" : x.comp ? "DSP" : "CG");
   const oreAn = x.an || Math.round(x.sapt * sapts * 10) / 10;
@@ -1869,7 +1869,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.0.1 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.0.2 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
