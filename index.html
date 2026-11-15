@@ -334,6 +334,18 @@ const PDC_2026 = {
 /* Din denumirile planurilor din Drive („Aplicatie ORAR”): clasele a IX-a sunt liceu (domeniul, fără calificare), Mecanic agricol e în domeniul Mecanică, XI J = Tehnician în gastronomie. */
 CORECTURI.push({id:"2026-11-14-profil-domeniu-calificare-v2", text:"Clasele au acum profil, domeniu de pregătire, calificare profesională și nivel, după planurile-cadru din Drive.",
   f: s => { if(s.an !== "2026-2027") return; for(const cl of s.clase){ const m = PDC_2026[cl.id]; if(!m) continue; cl.profil = m[0]; cl.domeniu = m[1]; cl.calificare = m[2]; cl.nivel = m[3]; } }});
+/* Model: planul-cadru nou, clasa a X-a, profil tehnic (Anexa 6, OME 4350/2025) – 26 săpt. TC/CS + CDEOS 300 ore. [disciplina, componenta, tip, ore/săpt., ore/an, în orar] */
+const MODEL_X_TEHNIC = [["LIMBA SI LITERATURA ROMÂNA","TC","CG",3],["LIMBA ENGLEZA","TC","CG",2],["LIMBA FRANCEZĂ","TC","CG",1],["MATEMATICA","TC","CG",2],["FIZICA","TC","CG",1],["CHIMIE","TC","CG",1],["BIOLOGIE","TC","CG",1],["ISTORIE","TC","CG",1],["GEOGRAFIE","TC","CG",1],["DISCIPLINA SOCIO-UMANA","TC","CG",2],["RELIGIE","TC","CG",1],["EDUCATIE MUZICALA","TC","CG",0.5],["EDUCATIE VIZUALA","TC","CG",0.5],["EDUCATIE FIZICA","TC","CG",1],["TEHNOLOGIA INFORMATIEI SI COMUNICATIILOR","TC","CG",1],["DEZVOLTARE PERSONALA SI CONSILIERE IN CARIERA","TC","O-CO",1],
+  ["LIMBA FRANCEZĂ","CS","CG",1],["PREGATIRE TEORETICA DE SPECIALITATE","CS","DSP",4],["PREGATIRE PRACTICA - LABORATOR TEHNOLOGIC","CS","DSP",2],["PREGATIRE PRACTICA - INSTRUIRE PRACTICA","CS","PIP",4],
+  ["STAGII DE PREGATIRE PRACTICA (SPP)","CDEOS","PIP",0,270,false],["CURRICULUM PENTRU APROFUNDARE SI INSERTIE PROFESIONALA","CDEOS","CG",0,30,false]];
+const NUME_MODEL_X_TEHNIC = "X liceu Tehnic – plan nou (OME 4350/2025)";
+CORECTURI.push({id:"2026-11-15-model-x-tehnic", text:"Am adăugat modelul de plan-cadru pentru clasa a X-a liceu, profil tehnic (planul nou).",
+  f: s => {
+    const disc = MODEL_X_TEHNIC.map(([d, comp, tip, sapt, an, orar]) => ({d, comp, tip, oreAn: an || sapt * 26, inOrar: orar !== false, motiv: orar === false ? "stagiu / practică comasată / individual" : ""}));
+    s.modele = (s.modele || []).filter(m => m.nume !== NUME_MODEL_X_TEHNIC);
+    s.modele.unshift({nume: NUME_MODEL_X_TEHNIC, calificare: "", domeniu: "Mecanică", profil: "Tehnic", nivel: "liceu", saptamani: 26, discipline: disc});
+    for(const cl of s.clase || []) if(rangClasa(cl.id) === 10 && planNou(cl) && !(cl.discipline || []).length && (fara(cl.profil) === "tehnic" || fara(cl.domeniu) === "mecanica")){ cl.discipline = clone(disc); cl.saptamani = 26; }
+  }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
@@ -1869,7 +1881,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.0.2 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
