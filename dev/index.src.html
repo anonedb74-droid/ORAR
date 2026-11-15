@@ -994,7 +994,7 @@ function fisaClasa(cl){
     <p class="muted" style="font-size:13px">Completezi ore/săpt. sau ore/an – cealaltă se calculează (ore/an = ore/săpt. × ${cl.saptamani} săptămâni). Pentru stagii, practica comasată sau conducerea individuală debifezi „în orar”: orele intră în normă, dar nu în orarul săptămânal. O disciplină dată unui profesor apare „atribuită” și dispare din „Doar neatribuite”; dacă i-ai dat doar o parte din ore, rămâne acolo cu orele rămase.</p>
     ${(() => { const V = A.filter(x => (filtCat === "toate" || categ(x.it, cl) === filtCat) && (filtStare === "toate" || (filtStare === "neatr" ? x.rest > 0.5 : x.rest <= 0.5)));
       const so = V.filter(x => x.it.inOrar).reduce((s, x) => s + x.it.oreAn, 0), sa = V.reduce((s, x) => s + x.it.oreAn, 0), sr = V.reduce((s, x) => s + Math.max(0, x.rest), 0);
-      return `<div class="scroll"><table><tr><th>Disciplina</th><th>Componenta</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th>În orar</th><th>Atribuită (ore/săpt.)</th><th class="num">Neatribuit</th><th></th></tr>
+      return `<div class="scroll"><table><tr><th>Disciplina</th><th>Componenta</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th title="Bifat = orele se fac în orarul săptămânal; debifat = stagii, practică comasată, conducere individuală">În orar săpt.</th><th>Atribuită (ore/săpt.)</th><th class="num">Neatribuit</th><th></th></tr>
     ${V.map(x => `<tr><td><input list="dlDiscAll" value="${esc(x.it.d)}" style="min-width:200px;width:100%" onchange="setDisc('${jsq(c)}',${x.i},'d',this.value)">${x.rest > 0.5 ? `<div style="margin-top:4px"><button class="btn mic" onclick="alegeProfDisc('${jsq(c)}',${x.i})">Atribuie ${fmt(x.rest / cl.saptamani)} ore/săpt.</button></div>` : ""}</td>
       <td>${(() => { const cv = compDe(x.it, cl), opt = [...new Set([...(planNou(cl) ? ["TC","CS","CDEOS"] : ["TC","CD","CDL"]), cv])]; return `<select title="${esc(NUME_GRUP[grupComp(cv)])}" onchange="setDisc('${jsq(c)}',${x.i},'comp',this.value)">${opt.map(o => `<option ${o === cv ? "selected" : ""}>${o}</option>`).join("")}</select>${x.it.comp ? "" : '<div class="muted" style="font-size:11px">propus</div>'}`; })()}</td>
       <td><select onchange="setDisc('${jsq(c)}',${x.i},'tip',this.value)">${TIPURI.map(t => `<option ${t === x.it.tip ? "selected" : ""}>${t}</option>`).join("")}</select></td>
@@ -1099,7 +1099,10 @@ function setDisc(c, i, k, v){
   else if(k === "comp"){ it.comp = v; R.forEach(r => r.comp = v); }
   else if(k === "sapt") it.oreAn = Math.round((+v || 0) * cl.saptamani * 10) / 10;
   else if(k === "an") it.oreAn = +v || 0;
-  else if(k === "inOrar"){ it.inOrar = v; it.motiv = v ? "" : "stagiu / practică comasată / individual"; R.forEach(r => { r.inOrar = v; r.motiv = it.motiv; }); }
+  else if(k === "inOrar"){
+    if(!v && !confirm(`Debifezi „În orar” la ${it.d}?\n\nAsta înseamnă că orele NU se fac în orarul săptămânal (stagii, practică comasată, conducere individuală). Disciplina nu se șterge și rămâne atribuită.\n\nDacă vrei doar să vezi anumite discipline, folosește butoanele „Arată” și „Starea”.`)){ render(); return; }
+    if(!it.comp) it.comp = compDe(it, cl); // componenta rămâne aceeași
+    it.inOrar = v; it.motiv = v ? "" : "stagiu / practică comasată / individual"; R.forEach(r => { r.inOrar = v; r.motiv = it.motiv; }); }
   saveState(); render();
 }
 function adaugaDisc(c){ clasa(c).discipline.push({d:"", tip:"CG", oreAn:0, inOrar:true, motiv:""}); saveState(); render(); }
@@ -1866,7 +1869,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.0 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.0.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
