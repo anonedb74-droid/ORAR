@@ -217,6 +217,7 @@ const REGULI_INITIALE = [
   {id:"R19", text:"Practica e de două feluri: practica comasată (săptămâni întregi, la agenți economici sau în atelierul școlii) și Aplicațiile practice săptămânale în atelierele școlii, în pachete de 6 ore (o zi întreagă) cu maistrul instructor. Exemplu: X F are Aplicații practice joi și vineri.", auto:"Blocurile de 3+ ore la rând cu același profesor rămân neatinse la reorganizare."},
   {id:"R20", text:"Calitatea orarului: ore cât mai compacte și fără deplasări în două locații. Sunt situații în care deplasarea e necesară și nu există altă soluție (de exemplu, Pușcașu are o singură zi, cu ore în ambele locații).", auto:"Zilele în două locații apar ca avertismente R2; cele inevitabile rămân."},
   {id:"R21", text:"Profesorii care au ore la școala gimnazială din Ghilea pot avea în aceeași zi și ore la Șendriceni (2–4 minute cu mașina între școli).", auto:"Orarul de la Ghilea nu e în aplicație; zilele profesorilor nu se schimbă la reorganizare, ca să nu se strice orarul de la Ghilea."},
+  {id:"R22", text:"Notația perioadelor în orar: „IX F/” (bara după clasă) = P1, prima perioadă (săptămânile de la început); „/IX F” (bara înainte de clasă) = P2, a doua perioadă (săptămânile de după, până la final); „*” = alternanță (A). P vine de la „perioadă”; denumirea P1/P2 nu vine din planul-cadru, e notația aplicației pentru planșa din Excel.", auto:"Aplicată: în celule, P1 / P2 / A la fiecare profesor; în planșă și la export se scriu „IX F/”, „/IX F” și „*”."},
   {id:"R12", text:"Clasele a IX-a au Lăcătușărie generală cam primele 7 săptămâni, apoi pe aceleași ore au Bazele desenului tehnic cu Asaftei Lidia. [De rescris: în orarul actual, ziua de specialitate de la IX F și IX G are Dohotariu Viorel în prima perioadă și Pohoață Mihaela în a doua, câte 15 săptămâni.]", auto:""}
 ];
 const NOTE_INITIALE = [
@@ -258,7 +259,7 @@ function load(){
 /* Completează câmpurile lipsă; nu șterge nimic. */
 function migreazaDate(){
   state.reguli ??= clone(REGULI_INITIALE);
-  for(const id of ["R13","R14","R15","R16","R17","R18","R19","R20","R21"]) if(!state.reguli.some(r => r.id === id)) state.reguli.push(clone(REGULI_INITIALE.find(r => r.id === id)));
+  for(const id of ["R13","R14","R15","R16","R17","R18","R19","R20","R21","R22"]) if(!state.reguli.some(r => r.id === id)) state.reguli.push(clone(REGULI_INITIALE.find(r => r.id === id)));
   { const r9 = state.reguli.find(r => r.id === "R9"), n9 = REGULI_INITIALE.find(r => r.id === "R9"); if(r9 && !r9.text.includes("pentru toți elevii")) r9.text = n9.text; }
   state.reguli.sort((a, b) => (+a.id.slice(1) || 99) - (+b.id.slice(1) || 99));
   state.note ??= clone(NOTE_INITIALE);
@@ -1930,7 +1931,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.1 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.2 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
