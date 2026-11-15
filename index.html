@@ -978,7 +978,7 @@ function fisaClasa(cl){
   const surse = state.clase.filter(o => o.id !== c && o.discipline?.length);
   return `<h2>Clasa ${esc(c)}</h2>
   <div class="card row"><button class="btn sec mic" onclick="selCls=null;render()">← Toate clasele</button><span class="grow"></span>
-    <button class="btn sec mic" onclick="deschideClasa('${jsq(c)}')">🏫 Orarul clasei</button><button class="btn rosu mic" onclick="stergeClasa('${jsq(c)}')">Șterge clasa</button></div>
+    <a class="btn sec mic" href="Constructor%20plan-cadru.xlsx" download style="text-decoration:none">📊 Excel constructor plan-cadru</a><button class="btn sec mic" onclick="document.getElementById('detLip').open=true;document.getElementById('detLip').scrollIntoView({behavior:'smooth'})">📋 Lipește planul</button><button class="btn sec mic" onclick="deschideClasa('${jsq(c)}')">🏫 Orarul clasei</button><button class="btn rosu mic" onclick="stergeClasa('${jsq(c)}')">Șterge clasa</button></div>
   <div class="card"><h3>Date generale</h3><div class="row">
     <div><label>Clasa</label><input value="${esc(c)}" style="width:90px" onchange="redenumesteClasa('${jsq(c)}',this.value)"></div>
     <div><label>Nivel</label><select onchange="setCls('${jsq(c)}','nivel',this.value)">${NIVELURI.map(n => `<option ${n === cl.nivel ? "selected" : ""}>${n}</option>`).join("")}</select></div>
@@ -1017,7 +1017,7 @@ function fisaClasa(cl){
       <td class="num ${Math.abs(x.rest) > 0.5 ? "rau" : "ok"}">${x.rest > 0.5 ? `${fmt(x.rest / cl.saptamani)}/săpt.<div style="font-size:11px">${fmt(x.rest)}/an</div>` : x.rest < -0.5 ? `peste plan ${fmt(-x.rest)}/an` : "✓"}</td>
       <td><button class="btn sec mic" onclick="stergeDisc('${jsq(c)}',${x.i})">✕</button></td></tr>`).join("") || `<tr><td colspan="9" class="muted">${filtStare === "neatr" ? "✓ Nicio oră neatribuită aici." : "Nicio disciplină."}</td></tr>`}
     <tr><th>Total afișat (în orar / pe an)</th><th></th><th></th><th class="num">${fmt(so / cl.saptamani)}</th><th class="num">${fmt(sa)}</th><th colspan="2"></th><th class="num">${sr > 0.5 ? fmt(sr / cl.saptamani) + "/săpt." : "✓"}</th><th></th></tr></table></div>`; })()}
-    <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">📋 Lipește din Excel</summary>
+    <details id="detLip" style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">📋 Lipește din Excel</summary>
       <p class="muted" style="font-size:13px">Din Excelul <a href="Constructor%20plan-cadru.xlsx" download>„Constructor plan-cadru”</a>: în foaia „Plan clasă” apeși Ctrl + A, Copy, apoi lipești aici. Aplicația ia singură doar disciplinele (cu câte un rând pentru fiecare componentă completată) și numărul de săptămâni; titlurile, totalurile și verificarea le lasă deoparte. Merge și o listă simplă: Disciplina · Componenta · Tip · Ore/săpt. · Ore/an · În orar.</p>
       <textarea id="lipPlan" rows="6" style="width:100%;font-family:monospace;font-size:12px" placeholder="Limba și literatura română	TC	CG	3&#10;Matematică	TC	CG	2&#10;Matematică	CD	CG	1"></textarea>
       <div class="row" style="margin-top:6px"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="lipInl" checked> înlocuiesc disciplinele clasei (altfel le adaug / actualizez)</label></div>
@@ -1930,7 +1930,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
