@@ -383,6 +383,30 @@ CORECTURI.push({id:"2026-11-18-ix-noi-2027", text:"În 2027-2028 am adăugat cla
     }
     s.clase.sort((a, b) => (rangClasa(a.id) - rangClasa(b.id)) || ro(a.id, b.id));
   }});
+/* 18.11: în 2027-2028, în browserul lui Daniel, lipseau clase trecute din 2026-2027 (IX I → X I, X D → XI D).
+   Pentru fiecare clasă din 2026-2027, dacă lipsește clasa în care devine („În anul următor devine” sau IX → X → XI → XII),
+   o adăugăm ca la „Pregătește anul școlar următor”: datele clasei, dirigintele, disciplinele de la o clasă potrivită din anul următor de studiu (dacă există). */
+CORECTURI.push({id:"2026-11-18-clase-trecute-2027", text:"În 2027-2028 am adăugat clasele trecute din 2026-2027 care lipseau (de exemplu X I și XI D).",
+  f: s => {
+    if(s.an !== "2027-2028") return false;
+    let v = null; try{ v = JSON.parse(localStorage.getItem("orar_an_2026-2027") || "null"); }catch(e){}
+    if(!v || !v.clase) return false;
+    const noi = [];
+    for(const c of v.clase){
+      const id = urmeaza(c); if(!id || s.clase.some(x => x.id === id)) continue;
+      const rg = rangClasa(id), q = normDisc(c.calificare), dm = normDisc(c.domeniu);
+      const ok = o => rangClasa(o.id) === rg && o.discipline?.length && o.nivel === c.nivel;
+      const model = v.clase.find(o => ok(o) && q && normDisc(o.calificare) === q) || v.clase.find(o => ok(o) && o.id === id) || v.clase.find(o => ok(o) && dm && normDisc(o.domeniu) === dm);
+      const nou = rg === 10 && c.nivel === "liceu";
+      s.clase.push({id, profil: c.profil || "", domeniu: c.domeniu || "", calificare: c.calificare || (model ? model.calificare : ""), nivel: model ? model.nivel : c.nivel,
+        locatie: model ? model.locatie : c.locatie, diriginte: c.diriginte || "", saptamani: model ? model.saptamani : (nou ? 26 : c.saptamani),
+        discipline: model ? clone(model.discipline) : [], dinModel: model ? model.id : "", urmeaza: ""});
+      s.orar[id] ??= {}; for(const z of (s.zile || ZILE)) s.orar[id][z] ??= {};
+      noi.push(id);
+    }
+    s.clase.sort((a, b) => (rangClasa(a.id) - rangClasa(b.id)) || ro(a.id, b.id));
+    if(noi.length) setTimeout(() => toast("Clase adăugate în 2027-2028: " + noi.join(", ") + "."), 1600);
+  }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
@@ -1967,7 +1991,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.4 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.5 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
