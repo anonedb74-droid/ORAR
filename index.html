@@ -191,6 +191,7 @@ const TABURI = [
   {id:"cls", t:"Clase și planuri", i:"🎓"},
   {id:"profi", t:"Profesori și încadrare", i:"🧑‍🏫"},
   {id:"nec", t:"Necesar pe discipline", i:"📈"},
+  {id:"norme", t:"Calculul normelor", i:"🧮"},
   {id:"inc", t:"Încadrare (tabel)", i:"📋"},
   {id:"ver", t:"Verificări", i:"✅"},
   {id:"reg", t:"Reguli", i:"📐"},
@@ -696,7 +697,7 @@ function render(){
   $("#selAn").innerHTML = totiAnii().map(a => `<option value="${esc(a)}" ${a === state.an ? "selected" : ""}>${esc(a)}</option>`).join("") + `<option value="__nou">➕ An școlar nou…</option>`;
   if(selClasa && !clasa(selClasa)) selClasa = null;
   if(selProf && !state.profesori.includes(selProf)) selProf = null;
-  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, cls:vCls, profi:vProfi, nec:vNec, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
+  const f = {azi:vAzi, dash:vDash, clase:vClase, prof:vProf, plansa:vPlansa, cls:vCls, profi:vProfi, nec:vNec, norme:vNorme, inc:vInc, ver:vVer, reg:vReg, date:vDate}[tab] || vAzi;
   $("#main").innerHTML = bannerBackup() + f();
   window.scrollTo(0, y);
 }
@@ -1957,6 +1958,57 @@ function creeazaAnNou(){
   toast(`Am creat anul ${an}: ${clase.length} clase trecute (${cuPlan} cu discipline). Anul ${v.an} rămâne salvat.`);
 }
 
+/* ---------- TAB: Calculul normelor (18.11) ----------
+   Citește încadrarea din „Profesori și încadrare”. Norma întreagă: profesor 720 ore/an (20 × 36), maistru instructor / inginer 936 (26 × 36).
+   Fiecare rând contează după felul încadrării lui (Încadrat ca). Lipsa = (1 − norma) × norma întreagă a persoanei. */
+let normaSel = null, normaCa = "";
+const felPersoana = p => { const f = (state.fise[p] || {}).functia || ""; return /maistru/i.test(f) ? "maistru" : /inginer/i.test(f) ? "inginer" : "profesor"; };
+function situatieNorma(p, ca){
+  ca = ca || felPersoana(p);
+  const baza = ca === "profesor" ? 720 : 936, sapt = ca === "profesor" ? 20 : 26;
+  const R = state.incadrare.filter(r => r.p === p);
+  const g = {profesor:{an:0, n:0}, maistru:{an:0, n:0}};
+  R.forEach(r => { const k = pondere(r) === 720 ? "profesor" : "maistru"; g[k].an += r.oreAn; g[k].n += r.oreAn / pondere(r); });
+  const n = g.profesor.n + g.maistru.n, lipsaAn = Math.round((1 - n) * baza * 10) / 10;
+  return {ca, baza, sapt, R, g, n, lipsaAn, lipsaSapt: Math.round((1 - n) * sapt * 100) / 100};
+}
+function vNorme(){
+  const P = state.profesori.filter(p => state.incadrare.some(r => r.p === p) || state.fise[p]);
+  if(normaSel && !state.profesori.includes(normaSel)) normaSel = null;
+  const p = normaSel, S = p ? situatieNorma(p, normaCa) : null;
+  const numeFel = k => ({profesor:"profesor", maistru:"maistru instructor", inginer:"inginer (normat ca maistru)"}[k]);
+  let h = `<h2>Calculul normelor</h2>
+  <p class="muted">Orele vin din „Profesori și încadrare” (ce ai atribuit acolo). Norma întreagă: profesor 720 ore/an (20 ore/săpt.), maistru instructor sau inginer 936 ore/an (26 ore/săpt.). Fiecare rând se împarte după felul încadrării lui.</p>
+  <div class="card row"><div class="grow" style="min-width:240px"><label>Persoana</label><select style="width:100%" onchange="normaSel=this.value||null;normaCa='';render()"><option value="">– alege –</option>${P.map(x => `<option ${x === p ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div>
+  ${p ? `<div><label>Norma întreagă de</label><select onchange="normaCa=this.value;render()">${["profesor","maistru","inginer"].map(k => `<option value="${k}" ${S.ca === k ? "selected" : ""}>${numeFel(k)} (${k === "profesor" ? "720" : "936"})</option>`).join("")}</select></div>` : ""}</div>`;
+  if(p){
+    const pr = Math.round(S.n * 100);
+    const mesaj = S.n > 1.005 ? `<b class="rau">Depășește norma cu ${fmt(-S.lipsaAn)} ore/an</b> (≈ ${fmt(-S.lipsaSapt)} ore/săpt. de ${numeFel(S.ca)}).`
+      : S.n >= 0.995 ? `<b class="ok">Normă întreagă de ${numeFel(S.ca)}.</b>`
+      : `Mai sunt necesare <b>${fmt(S.lipsaAn)} ore/an</b> (≈ <b>${fmt(S.lipsaSapt)} ore/săpt.</b>) ca să aibă o normă întreagă de ${numeFel(S.ca)}.`;
+    h += `<div class="kpis"><div class="kpi ${S.n > 1.005 ? "rau" : ""}"><b>${pr}%</b><span>din normă (${fmt(S.n)} norme)</span></div>
+      <div class="kpi"><b>${fmt(S.g.profesor.an)}</b><span>ore/an ca profesor (÷ 720)</span></div>
+      <div class="kpi"><b>${fmt(S.g.maistru.an)}</b><span>ore/an ca maistru / inginer (÷ 936)</span></div></div>
+    <div class="card"><p style="margin:0">${mesaj}</p>${S.n < 0.995 ? `<p class="muted" style="font-size:13px;margin:6px 0 0">Calcul: (1 − ${fmt(S.n)}) × ${S.baza} = ${fmt(S.lipsaAn)} ore/an; pe săptămână: (1 − ${fmt(S.n)}) × ${S.sapt}.</p>` : ""}
+      <div class="row" style="margin-top:10px"><button class="btn" onclick="asociazaClase('${jsq(p)}')">☑ Alege clasele (adaugă ore)</button><button class="btn sec" onclick="deschideFisaProf('${jsq(p)}')">🧑‍🏫 Fișa lui în Profesori și încadrare</button></div></div>
+    <div class="card"><h3>Ce i-ai atribuit</h3><div class="scroll"><table><tr><th>Clasa</th><th>Disciplina</th><th>Încadrat ca</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">÷</th><th class="num">% din normă</th></tr>
+      ${S.R.map(r => `<tr><td>${esc(r.clasa)}</td><td>${esc(r.disciplina)}${r.inOrar ? "" : ` <span class="muted">(în afara orarului)</span>`}</td><td>${numeFel(felImplicit(r))}</td><td class="num">${r.inOrar && clasa(r.clasa) ? fmt(oreSapt(r)) : "–"}</td><td class="num">${fmt(r.oreAn)}</td><td class="num">${pondere(r)}</td><td class="num">${procent(r.oreAn / pondere(r))}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">Nicio oră atribuită.</td></tr>`}
+      <tr><td colspan="4"><b>Total</b></td><td class="num"><b>${fmt(S.g.profesor.an + S.g.maistru.an)}</b></td><td></td><td class="num"><b>${pr}%</b></td></tr></table></div></div>`;
+    // ore libere pe specialitățile lui
+    const spec = (state.fise[p] || {}).specialitati || [];
+    const lib = [];
+    for(const cl of state.clase) for(const x of acoperire(cl)) if(x.rest > 0.5 && spec.some(sp => normDisc(sp) === normDisc(x.it.d))) lib.push({cl, x});
+    h += `<div class="card"><h3>Ore libere la specialitățile lui (de unde poate completa)</h3>${lib.length ? `<div class="scroll"><table><tr><th>Clasa</th><th>Disciplina</th><th class="num">Libere</th><th class="num">Ore/an</th><th class="num">Ar adăuga</th></tr>
+      ${lib.map(({cl, x}) => { const w = ponderePe(null, x.it.tip); return `<tr><td>${esc(cl.id)}</td><td>${esc(x.it.d)}</td><td class="num">${x.it.inOrar ? fmt(x.rest / cl.saptamani) + "/săpt." : "în afara orarului"}</td><td class="num">${fmt(x.rest)}</td><td class="num">${procent(x.rest / w)}</td></tr>`; }).join("")}</table></div>`
+      : `<p class="muted">${spec.length ? "Nu mai sunt ore libere la specialitățile lui." : "Nu are specialități trecute în fișă."}</p>`}</div>`;
+  }
+  // toți
+  const T = P.map(x => ({p: x, S: situatieNorma(x)})).filter(o => o.S.R.length);
+  h += `<div class="card"><h3>Toți profesorii și maiștrii</h3><div class="scroll"><table><tr><th>Nume</th><th>Funcția</th><th class="num">Ore/an profesor</th><th class="num">Ore/an maistru</th><th class="num">Norma</th><th class="num">Lipsă (−) / peste (+) ore/an</th><th class="num">≈ ore/săpt.</th></tr>
+    ${T.map(({p: x, S: s}) => `<tr class="click" onclick="normaSel='${jsq(x)}';normaCa='';render();window.scrollTo(0,0)"><td><b>${esc(x)}</b></td><td>${numeFel(s.ca)}</td><td class="num">${fmt(s.g.profesor.an)}</td><td class="num">${fmt(s.g.maistru.an)}</td><td class="num ${s.n > 1.005 ? "rau" : ""}">${procent(s.n)}</td><td class="num">${Math.abs(s.lipsaAn) < 1 ? "0" : (s.lipsaAn > 0 ? "−" : "+") + fmt(Math.abs(s.lipsaAn))}</td><td class="num">${Math.abs(s.lipsaSapt) < 0.05 ? "0" : (s.lipsaSapt > 0 ? "−" : "+") + fmt(Math.abs(s.lipsaSapt))}</td></tr>`).join("")}</table></div></div>`;
+  return h;
+}
+
 /* ---------- TAB: Încadrare ---------- */
 function vInc(){
   const f = filtruInc, t = f.text.toLowerCase();
@@ -2070,7 +2122,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.3.2 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.4 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
