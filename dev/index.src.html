@@ -407,6 +407,30 @@ CORECTURI.push({id:"2026-11-18-clase-trecute-2027", text:"În 2027-2028 am adău
     s.clase.sort((a, b) => (rangClasa(a.id) - rangClasa(b.id)) || ro(a.id, b.id));
     if(noi.length) setTimeout(() => toast("Clase adăugate în 2027-2028: " + noi.join(", ") + "."), 1600);
   }});
+/* 18.11: planurile pentru X I și XI D în 2027-2028.
+   X I – planul nou, Anexa 7 (OME 4350/2025, MO 565 bis/2026), profil Resurse naturale, clasa a X-a: aceleași ore ca la Tehnic
+   (TC 20, CS 11 = LM2 aplicată 1 + pregătire teoretică 4 + pregătire practică 6, 26 săpt.; CDEOS 300 = SPP 270 + aprofundare 30) → modelul X liceu.
+   XI D – planul vechi, clasa a XI-a liceu tehnologic, Resurse naturale (32 săpt.): cultura generală ca la XI I din 2026-2027 (același plan-cadru);
+   modulele de specialitate Tehnician ecolog nu sunt în Drive – rânduri provizorii cu orele de la XI I (9 + 2 ore/săpt., stagiu 150 ore). */
+CORECTURI.push({id:"2026-11-18-plan-xi-xid-2027", text:"X I: planul-cadru nou al clasei a X-a (Resurse naturale). XI D: cultura generală ca la XI I; modulele Tehnician ecolog provizorii, de completat.",
+  f: s => {
+    if(s.an !== "2027-2028") return false;
+    const xi = s.clase.find(c => c.id === "X I"), xd = s.clase.find(c => c.id === "XI D");
+    if(!xi && !xd) return false;
+    const m = (s.modele || []).find(x => x.nume === NUME_MODEL_X_TEHNIC);
+    if(xi && !(xi.discipline || []).length && m){ xi.discipline = clone(m.discipline); xi.saptamani = 26; xi.nivel = "liceu"; xi.dinModel = "Anexa 7 – Resurse naturale, clasa a X-a"; }
+    if(xd && !(xd.discipline || []).length){
+      let v = null; try{ v = JSON.parse(localStorage.getItem("orar_an_2026-2027") || "null"); }catch(e){}
+      const src = v && (v.clase || []).find(c => c.id === "XI I");
+      const cg = ((src && src.discipline) || []).filter(it => it.inOrar && !/^(DSP|PIP)$/.test(it.tip)).map(it => clone(it));
+      if(!cg.length) return false;
+      xd.discipline = [...cg,
+        {d:"MODULE DE SPECIALITATE TEHNICIAN ECOLOG (DE COMPLETAT)", comp:"CD", tip:"DSP", oreAn: 9 * 32, inOrar: true, motiv:""},
+        {d:"INSTRUIRE PRACTICA TEHNICIAN ECOLOG (DE COMPLETAT)", comp:"CD", tip:"PIP", oreAn: 2 * 32, inOrar: true, motiv:""},
+        {d:"PREGATIRE PRACTICA COMASATA - CDL (DE COMPLETAT)", comp:"CDL", tip:"DSP", oreAn: 150, inOrar: false, motiv:"stagiu / practică comasată / individual"}];
+      xd.saptamani = 32; xd.nivel = "liceu"; xd.dinModel = "XI I (2026-2027) – cultura generală";
+    }
+  }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
@@ -1994,7 +2018,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.6 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.7 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
