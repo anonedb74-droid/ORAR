@@ -461,10 +461,16 @@ const areContinut = x => !!x && (!!x.disc || (x.prof && x.prof.length > 0));
 function oreSapt(r){ const c = clasa(r.clasa); return c ? r.oreAn / c.saptamani : 0; }
 function incClasa(c){ return state.incadrare.filter(r => r.clasa === c && r.inOrar).reduce((s,r) => s + oreSapt(r), 0); }
 function incPereche(p, c){ return state.incadrare.filter(r => r.p === p && r.clasa === c && r.inOrar).reduce((s,r) => s + oreSapt(r), 0); }
-/* Norma (R10): ore pe an ÷ 720; instruirea practică (PIP) ÷ 936. Include stagiile și conducerea. */
+/* Felul încadrării pe fiecare rând (ales de Daniel): profesor ÷ 720; maistru instructor sau inginer (normat ca maistru) ÷ 936.
+   Rândurile fără felul încadrării: după tip (PIP ÷ 936, restul ÷ 720). */
+const FEL_INC = [["profesor","profesor (÷ 720)"],["maistru","maistru instructor (÷ 936)"],["inginer","inginer – normat ca maistru (÷ 936)"]];
+const ponderePe = (ca, tip) => ca ? (ca === "profesor" ? 720 : 936) : (tip === "PIP" ? 936 : 720);
+const pondere = r => ponderePe(r.ca, r.tip);
+const felImplicit = r => r.ca || (r.tip === "PIP" ? "maistru" : "profesor");
+/* Norma (R10): ore pe an ÷ 720 (profesor) sau ÷ 936 (maistru, inginer). Include stagiile și conducerea. */
 function norma(p){
   let n = 0;
-  for(const r of state.incadrare.filter(r => r.p === p)) n += r.oreAn / (r.tip === "PIP" ? 936 : 720);
+  for(const r of state.incadrare.filter(r => r.p === p)) n += r.oreAn / pondere(r);
   return n;
 }
 /* Index: unde e fiecare profesor și câte ore are la fiecare clasă. */
@@ -1011,7 +1017,7 @@ const normClasa = s => String(s || "").trim().toUpperCase().replace(/\s+/g, " ")
 const RANG = {V:5, VI:6, VII:7, VIII:8, IX:9, X:10, XI:11, XII:12, XIII:13};
 const rangClasa = id => { const m = String(id).match(/^([IVX]+)\s/); return m ? (RANG[m[1]] || 99) : 99; };
 function sorteazaClase(){ state.clase.sort((a, b) => (rangClasa(a.id) - rangClasa(b.id)) || ro(a.id, b.id)); }
-const pondere = r => r.tip === "PIP" ? 936 : 720;
+
 /* Un rând din încadrare aparține unei discipline din plan dacă are același nume (fără diacritice și spații) și aceeași situație „în orar”. */
 const potriveste = (r, it) => normDisc(r.disciplina) === normDisc(it.d) && !!r.inOrar === !!it.inOrar;
 /* Când o disciplină apare de două ori în plan (de exemplu Matematică TC și Matematică CD), rândurile din încadrare se leagă după componentă (r.comp);
@@ -1266,12 +1272,13 @@ function fisaProf(p){
     <div class="row" style="margin-bottom:10px"><button class="btn" onclick="asociazaClase('${jsq(p)}')">☑ Alege clasele</button><button class="btn sec" onclick="asociazaClasa('${jsq(p)}')">+ O clasă, pe discipline</button><span class="grow"></span>${R.length ? `<button class="btn sec mic" id="btnStBif" onclick="stergeBifate('${jsq(p)}')" disabled>🗑 Șterge bifate</button><button class="btn rosu mic" onclick="stergeTotIncadrare('${jsq(p)}')">🗑 Șterge toată încadrarea</button>` : ""}</div>
     <p class="muted" style="font-size:13px;margin-top:0">„Alege clasele”: bifezi toate clasele la care predă o disciplină. „O clasă, pe discipline”: alegi exact orele la o clasă unde poate preda mai multe. Pentru simulări: „Șterge toată încadrarea” îi scoate toate orele odată; „Șterge bifate” – doar rândurile bifate.</p>
     ${ultimaStergere && ultimaStergere.p === p ? `<div class="item niv-avertisment"><span class="t">Ai șters ${ultimaStergere.rows.length} ${ultimaStergere.rows.length === 1 ? "rând" : "rânduri"} din încadrarea lui.</span><button class="btn mic" onclick="readuStergere()">↩ Readu-le</button></div>` : ""}
-    <div class="scroll"><table><tr><th style="text-align:center">${R.length ? `<input type="checkbox" title="Bifează toate" onchange="document.querySelectorAll('.bifRand').forEach(x=>x.checked=this.checked);actBif()">` : ""}</th><th>Clasa</th><th>Disciplina</th><th>Tip</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">% din normă</th><th></th></tr>
+    <div class="scroll"><table><tr><th style="text-align:center">${R.length ? `<input type="checkbox" title="Bifează toate" onchange="document.querySelectorAll('.bifRand').forEach(x=>x.checked=this.checked);actBif()">` : ""}</th><th>Clasa</th><th>Disciplina</th><th>Tip</th><th>Încadrat ca</th><th class="num">Ore/săpt.</th><th class="num">Ore/an</th><th class="num">% din normă</th><th></th></tr>
     ${R.map(({r, i}) => { const cl = clasa(r.clasa); return `<tr><td style="text-align:center"><input type="checkbox" class="bifRand" data-i="${i}" onchange="actBif()"></td><td>${cl ? `<a href="#" onclick="selCls='${jsq(r.clasa)}';mergiLa('cls');return false"><b>${esc(r.clasa)}</b></a>` : esc(r.clasa)}</td><td>${esc(r.disciplina)}${r.inOrar ? "" : ` <span class="muted">(${esc(r.motiv || "nu e în orar")})</span>`}</td><td>${esc(r.tip)}</td>
+      <td><select onchange="state.incadrare[${i}].ca=this.value;saveState();render()">${FEL_INC.map(([k, t]) => `<option value="${k}" ${felImplicit(r) === k ? "selected" : ""}>${t}</option>`).join("")}</select></td>
       <td class="num">${cl && r.inOrar ? `<input type="number" step="0.5" min="0" value="${+oreSapt(r).toFixed(2)}" style="width:70px" onchange="setRand(${i},'sapt',this.value)">` : "–"}</td>
       <td class="num"><input type="number" min="0" value="${r.oreAn}" style="width:76px" onchange="setRand(${i},'an',this.value)"></td>
       <td class="num">${procent(r.oreAn / pondere(r))}</td>
-      <td><button class="btn sec mic" onclick="stergeRand(${i})">✕</button></td></tr>`; }).join("") || `<tr><td colspan="8" class="muted">Nicio oră încă. Apasă „Alege clasele”.</td></tr>`}</table></div></div>
+      <td><button class="btn sec mic" onclick="stergeRand(${i})">✕</button></td></tr>`; }).join("") || `<tr><td colspan="9" class="muted">Nicio oră încă. Apasă „Alege clasele”.</td></tr>`}</table></div></div>
   ${dlDisc()}`;
 }
 let ultimaStergere = null;
@@ -1346,76 +1353,93 @@ function stergeRand(i){
   state.incadrare.splice(i, 1); saveState(); render();
 }
 
-/* Asocierea pe mai multe clase deodată: alegi disciplina (din specialitățile lui), bifezi clasele; fiecare clasă bifată primește orele libere la acea disciplină.
-   Dacă la o clasă poate preda mai multe discipline, alegi apoi orele din „Detalii” (asocierea pe o clasă). */
+/* „Alege clasele” (18.11, cum a cerut Daniel): alegi O specialitate și felul încadrării (profesor / maistru / inginer);
+   aplicația arată clasele care au disciplina, cu orele libere; bifezi clasele și scrii câte ore îi dai (toate sau o parte). Apoi următoarea specialitate. */
 let multi = null;
-function asociazaClase(p){
-  const f = state.fise[p] || {specialitati:[]};
-  multi = {p, d: (f.specialitati || []).length ? "__toate" : "", sel: null};
-  renderMulti(); $("#modal").classList.add("deschis");
+function asociazaClase(p){ multi = {p, d:"", ca:"", v:{}}; renderMulti(); $("#modal").classList.add("deschis"); }
+function multiDisc(it){ return !!multi.d && normDisc(it.d) === normDisc(multi.d); }
+function felPentru(p, d){
+  const f = state.fise[p] || {}, R = state.incadrare.filter(r => r.p === p && normDisc(r.disciplina) === normDisc(d));
+  if(R.length) return felImplicit(R[0]);
+  const tipuri = state.clase.flatMap(c => (c.discipline || []).filter(it => normDisc(it.d) === normDisc(d)).map(it => it.tip));
+  if(tipuri.length && tipuri.every(t => t === "PIP")) return /inginer/i.test(f.functia || "") ? "inginer" : "maistru";
+  return /maistru/i.test(f.functia || "") && tipuri.some(t => t === "PIP") ? "maistru" : "profesor";
 }
-function multiDisc(it){
-  const {p, d} = multi, f = state.fise[p] || {specialitati:[]};
-  if(d === "__toate") return (f.specialitati || []).some(s => normDisc(s) === normDisc(it.d));
-  return normDisc(it.d) === normDisc(d);
+function multiRanduri(){
+  const {p} = multi;
+  return state.clase.map(cl => {
+    const X = acoperire(cl).filter(x => multiDisc(x.it)).map(x => {
+      const el = x.R.filter(r => r.p === p).reduce((t, r) => t + r.oreAn, 0);
+      const lib = Math.max(0, Math.round((x.it.oreAn - x.R.filter(r => r.p !== p).reduce((t, r) => t + r.oreAn, 0)) * 100) / 100);
+      const k = cl.id + "|" + x.i;
+      multi.v[k] ??= {on: el > 0, oreAn: el > 0 ? el : lib};
+      return {...x, el, lib, k};
+    });
+    return {cl, X};
+  }).filter(r => r.X.length);
+}
+function setMulti(k, camp, val, cl){
+  const v = multi.v[k]; if(!v) return;
+  if(camp === "on") v.on = val;
+  else { const c = clasa(cl), x = +String(val).replace(",", ".") || 0; v.oreAn = camp === "sapt" && c ? Math.round(x * c.saptamani * 100) / 100 : x; v.on = v.oreAn > 0; }
+  renderMulti();
 }
 function renderMulti(){
   const {p, d} = multi, f = state.fise[p] || {specialitati:[]};
   const spec = f.specialitati || [], toate = toateDisciplinele().filter(x => !spec.some(s => normDisc(s) === normDisc(x)));
-  const rows = state.clase.map(cl => {
-    const X = acoperire(cl).filter(x => multiDisc(x.it));
-    const lui = X.reduce((s, x) => s + x.R.filter(r => r.p === p).reduce((t, r) => t + r.oreAn, 0), 0);
-    const lib = x => Math.max(0, x.it.oreAn - x.R.filter(r => r.p !== p).reduce((t, r) => t + r.oreAn, 0));
-    const liber = X.reduce((s, x) => s + lib(x), 0);
-    const liberO = X.filter(x => x.it.inOrar).reduce((s, x) => s + lib(x), 0), liberA = X.filter(x => !x.it.inOrar).reduce((s, x) => s + lib(x), 0);
-    return {cl, X, lui, liber, liberO, liberA};
-  });
-  multi.sel ??= Object.fromEntries(rows.map(r => [r.cl.id, r.lui > 0]));
-  const linie = r => {
-    const {cl, X, lui, liber, liberO, liberA} = r, c = cl.id, s = cl.saptamani;
-    const info = !X.length ? '<span class="muted">nu e în planul clasei</span>'
-      : X.map(x => { const al = x.R.filter(q => q.p !== p); const el = x.R.filter(q => q.p === p).reduce((t, q) => t + q.oreAn, 0);
-          const u = x.it.inOrar ? (v => fmt(v / s)) : (v => fmt(v)), um = x.it.inOrar ? "/săpt." : " ore/an <span class=\"muted\">(în afara orarului)</span>";
-          return `${esc(x.it.d)}: <b>${u(x.it.oreAn)}</b>${um}${el ? ` · <span class="ok">are ${u(el)}</span>` : ""}${al.length ? ` · <span class="muted">${al.map(q => esc(scurt(q.p)) + " " + u(q.oreAn)).join(", ")}</span>` : ""}`; }).join("<br>");
-    const dez = !X.length || (!lui && liber <= 0.5);
-    return `<tr${dez ? ' style="opacity:.55"' : ""}><td style="text-align:center"><input type="checkbox" data-c="${esc(c)}" ${multi.sel[c] ? "checked" : ""} ${dez ? "disabled" : ""} onchange="multi.sel['${jsq(c)}']=this.checked;renderMulti()"></td>
-      <td><b>${esc(c)}</b><div class="muted" style="font-size:12px">${esc(eticheta(cl))}</div></td><td style="font-size:13px">${info}${!dez && !lui && liber > 0.5 ? `<div class="muted" style="font-size:12px">liber: ${[liberO > 0.5 ? fmt(liberO / s) + " ore/săpt." : "", liberA > 0.5 ? fmt(liberA) + " ore/an în afara orarului" : ""].filter(Boolean).join(" + ")}</div>` : ""}${X.length > 1 ? `<div><a href="#" style="font-size:12px" onclick="inchideModal();asociazaClasa('${jsq(p)}','${jsq(c)}');return false">Detalii – alege orele</a></div>` : ""}</td></tr>`;
-  };
-  // norma după salvare
+  const rows = d ? multiRanduri() : [];
+  const w = ponderePe(multi.ca || "profesor");
+  // norma după salvare: scoatem orele lui la disciplina aleasă și le punem pe cele bifate
   let n = norma(p);
-  rows.forEach(r => { r.X.forEach(x => { const el = x.R.filter(q => q.p === p).reduce((t, q) => t + q.oreAn, 0); const lib = Math.max(0, x.it.oreAn - x.R.filter(q => q.p !== p).reduce((t, q) => t + q.oreAn, 0));
-    const w = x.it.tip === "PIP" ? 936 : 720;
-    if(multi.sel[r.cl.id] && !el) n += lib / w; if(!multi.sel[r.cl.id] && el) n -= el / w; }); });
-  const nBif = rows.filter(r => multi.sel[r.cl.id]).length;
+  rows.forEach(r => r.X.forEach(x => { x.R.filter(q => q.p === p).forEach(q => n -= q.oreAn / pondere(q)); const v = multi.v[x.k]; if(v.on) n += v.oreAn / w; }));
+  const linie = r => r.X.map((x, j) => {
+    const v = multi.v[x.k], s = r.cl.saptamani, inO = x.it.inOrar, alti = x.R.filter(q => q.p !== p);
+    const dez = !v.on && x.lib <= 0.5 && !x.el;
+    const val = inO ? +(v.oreAn / s).toFixed(2) : v.oreAn;
+    return `<tr${dez ? ' style="opacity:.55"' : ""}>
+      <td style="text-align:center"><input type="checkbox" ${v.on ? "checked" : ""} ${dez ? "disabled" : ""} onchange="setMulti('${jsq(x.k)}','on',this.checked)"></td>
+      <td>${j ? "" : `<b>${esc(r.cl.id)}</b><div class="muted" style="font-size:12px">${esc(eticheta(r.cl))}</div>`}${r.X.length > 1 ? `<div class="muted" style="font-size:12px">${esc(compDe(x.it, r.cl))}</div>` : ""}</td>
+      <td class="num">${inO ? fmt(x.it.oreAn / s) + "/săpt." : fmt(x.it.oreAn) + " ore/an"}${inO ? "" : `<div class="muted" style="font-size:11px">în afara orarului</div>`}</td>
+      <td class="num">${inO ? fmt(x.lib / s) : fmt(x.lib)}${alti.length ? `<div class="muted" style="font-size:11px">${alti.map(q => esc(scurt(q.p)) + " " + (inO ? fmt(q.oreAn / s) : fmt(q.oreAn))).join(", ")}</div>` : ""}</td>
+      <td class="num"><input type="number" step="${inO ? 0.5 : 1}" min="0" value="${val}" style="width:80px" ${dez ? "disabled" : ""} onchange="setMulti('${jsq(x.k)}','${inO ? "sapt" : "an"}',this.value,'${jsq(r.cl.id)}')"> <span class="muted" style="font-size:12px">${inO ? "/săpt." : "ore/an"}</span></td></tr>`;
+  }).join("");
+  const nBif = rows.filter(r => r.X.some(x => multi.v[x.k].on)).length;
   $("#modalCont").innerHTML = `<h3>Alege clasele · ${esc(p)}</h3>
-    <label>Disciplina</label>
-    <select style="width:100%" onchange="multi.d=this.value;multi.sel=null;renderMulti()">
-      ${spec.length ? `<option value="__toate" ${d === "__toate" ? "selected" : ""}>Toate specialitățile lui (${spec.length})</option><optgroup label="Specialitățile lui">${spec.map(s => `<option value="${esc(s)}" ${s === d ? "selected" : ""}>${esc(s)}</option>`).join("")}</optgroup>` : `<option value="">– alege disciplina –</option>`}
-      <optgroup label="Alte discipline">${toate.map(s => `<option value="${esc(s)}" ${s === d ? "selected" : ""}>${esc(s)}</option>`).join("")}</optgroup>
-    </select>
-    <p class="muted" style="font-size:13px">Bifezi clasele la care vrei să predea. La fiecare clasă bifată primește orele libere la disciplina aleasă; dacă debifezi o clasă unde le are deja, i se scot. Când la o clasă poate preda mai multe discipline, apeși „Detalii” și alegi exact orele.</p>
-    ${d ? `<div class="row" style="margin-bottom:6px"><button class="btn sec mic" onclick="document.querySelectorAll('#modalCont td input[type=checkbox]:not([disabled])').forEach(x=>multi.sel[x.dataset.c]=true);renderMulti()">Bifează toate</button><button class="btn sec mic" onclick="Object.keys(multi.sel).forEach(k=>multi.sel[k]=false);renderMulti()">Debifează toate</button></div>
-    <div class="scroll" style="max-height:52vh"><table><tr><th></th><th>Clasa</th><th>Disciplina la clasă (plan · el · alții)</th></tr>${rows.map(linie).join("")}</table></div>
-    <p style="margin-top:10px">${nBif} ${nBif === 1 ? "clasă bifată" : "clase bifate"} · norma lui după salvare: <b>${procent(n)}</b> (${fmt(n)} norme)</p>` : ""}
-    <div class="row" style="margin-top:12px">${d ? `<button class="btn" onclick="salveazaMulti()">Salvează</button>` : ""}<span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
+    <div class="row">
+      <div class="grow" style="min-width:220px"><label>1. Specialitatea (ce predă)</label>
+      <select style="width:100%" onchange="multi.d=this.value;multi.v={};multi.ca=this.value?felPentru(multi.p,this.value):'';renderMulti()">
+        <option value="">– alege specialitatea –</option>
+        ${spec.length ? `<optgroup label="Specialitățile lui">${spec.map(x => `<option value="${esc(x)}" ${x === d ? "selected" : ""}>${esc(x)}</option>`).join("")}</optgroup>` : ""}
+        <optgroup label="Alte discipline">${toate.map(x => `<option value="${esc(x)}" ${x === d ? "selected" : ""}>${esc(x)}</option>`).join("")}</optgroup>
+      </select></div>
+      ${d ? `<div><label>2. Încadrat ca</label><select onchange="multi.ca=this.value;renderMulti()">${FEL_INC.map(([k, t]) => `<option value="${k}" ${multi.ca === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>` : ""}
+    </div>
+    ${!d ? `<p class="muted" style="font-size:13px">Alege o specialitate. Apoi alegi cum e încadrat (profesor, maistru, inginer), bifezi clasele și scrii câte ore îi dai. După salvare treci la următoarea specialitate.</p>`
+      : !rows.length ? `<p class="muted">Nicio clasă nu are ${esc(d)} în plan.</p>`
+      : `<p class="muted" style="font-size:13px">3. Bifezi clasele și scrii câte ore îi dai (implicit toate orele libere; poți scrie mai puțin). Debifat = i se scot orele de la clasa aceea.</p>
+    <div class="row" style="margin-bottom:6px"><button class="btn sec mic" onclick="multiRanduri().forEach(r=>r.X.forEach(x=>{const v=multi.v[x.k];if(x.lib>0.5||x.el){v.on=true;if(!v.oreAn)v.oreAn=x.lib;}}));renderMulti()">Bifează toate</button><button class="btn sec mic" onclick="Object.values(multi.v).forEach(v=>v.on=false);renderMulti()">Debifează toate</button></div>
+    <div class="scroll" style="max-height:50vh"><table><tr><th></th><th>Clasa</th><th class="num">În plan</th><th class="num">Liber (alții)</th><th class="num">Îi dai</th></tr>${rows.map(linie).join("")}</table></div>
+    <p style="margin-top:10px">${nBif} ${nBif === 1 ? "clasă bifată" : "clase bifate"} · încadrat ca <b>${esc((FEL_INC.find(x => x[0] === multi.ca) || [, ""])[1])}</b> · norma lui după salvare: <b>${procent(n)}</b> (${fmt(n)} norme)</p>`}
+    <div class="row" style="margin-top:12px">${d && rows.length ? `<button class="btn" onclick="salveazaMulti(false)">Salvează</button><button class="btn sec" onclick="salveazaMulti(true)">Salvează și alege altă specialitate</button>` : ""}<span class="grow"></span><button class="btn sec" onclick="inchideModal()">Închide</button></div>`;
 }
-function salveazaMulti(){
-  const {p, sel} = multi;
-  let puse = 0, scoase = 0;
-  for(const cl of state.clase){
-    const c = cl.id;
-    for(const x of acoperire(cl).filter(x => multiDisc(x.it))){
-      const ale = x.R.filter(r => r.p === p);
-      if(!sel[c]){ if(ale.length){ state.incadrare = state.incadrare.filter(r => !ale.includes(r)); scoase++; } continue; }
-      if(ale.length) continue; // le are deja – rămân cum sunt
-      const lib = Math.round((x.it.oreAn - x.R.filter(r => r.p !== p).reduce((t, r) => t + r.oreAn, 0)) * 100) / 100;
-      if(lib <= 0.5) continue;
-      state.incadrare.push({p, clasa:c, disciplina:x.it.d, tip:x.it.tip, post:"", oreAn:lib, inOrar:x.it.inOrar, motiv:x.it.inOrar ? "" : (x.it.motiv || "stagiu / practică comasată"), cdl:"", comp: compDe(x.it, cl)});
-      puse++;
-    }
+function salveazaMulti(continua){
+  const {p, ca} = multi;
+  let puse = 0, scoase = 0, peste = [];
+  for(const r of multiRanduri()) for(const x of r.X){
+    const v = multi.v[x.k], ale = x.R.filter(q => q.p === p);
+    state.incadrare = state.incadrare.filter(q => !ale.includes(q));
+    if(!v.on || v.oreAn <= 0){ if(ale.length) scoase++; continue; }
+    if(v.oreAn > x.lib + 0.5) peste.push(r.cl.id);
+    const b = ale[0] || {};
+    state.incadrare.push({p, clasa: r.cl.id, disciplina: x.it.d, tip: x.it.tip, post: b.post || "", oreAn: v.oreAn, inOrar: x.it.inOrar,
+      motiv: x.it.inOrar ? "" : (x.it.motiv || "stagiu / practică comasată"), cdl: b.cdl || "", comp: compDe(x.it, r.cl), ca});
+    puse++;
   }
-  saveState(); inchideModal(); render();
-  toast(`${p}: ${puse} ${puse === 1 ? "disciplină pusă" : "discipline puse"}${scoase ? `, ${scoase} scoase` : ""}. Norma: ${procent(norma(p))}.`);
+  const f = state.fise[p] ??= {functia:"profesor", specialitati:[], obs:""};
+  if(puse && !(f.specialitati || []).some(s => normDisc(s) === normDisc(multi.d))) (f.specialitati ??= []).push(multi.d);
+  saveState(); render();
+  toast(`${p} · ${multi.d}: ${puse} ${puse === 1 ? "clasă" : "clase"}${scoase ? `, scoasă de la ${scoase}` : ""}. Norma: ${procent(norma(p))}.${peste.length ? " Atenție, peste plan la: " + peste.join(", ") + "." : ""}`);
+  if(continua){ multi = {p, d:"", ca:"", v:{}}; renderMulti(); } else inchideModal();
 }
 /* Asocierea profesor–clasă: aplicația propune disciplinele din specialitățile profesorului, cu orele rămase; se pot schimba de mână. */
 let asoc = null;
@@ -1452,7 +1476,7 @@ function renderAsoc(){
         <td class="num"><input type="number" step="${sp ? 0.5 : 1}" min="0" value="${sp ? +(v.oreAn / cl.saptamani).toFixed(2) : v.oreAn}" style="width:52px" ${v.on ? "" : "disabled"} onchange="asoc.val[${x.i}].oreAn=${sp ? `Math.round((+this.value||0)*${cl.saptamani}*10)/10` : "+this.value||0"};renderAsoc()"><div class="muted" style="font-size:11px">${sp ? "pe săpt." : "pe an"}</div>${peste ? '<div class="rau" style="font-size:12px">peste plan</div>' : ""}</td></tr>`; }).join("")).join("")}</table></div>`;
       let n = norma(p);
       state.incadrare.filter(r => r.p === p && r.clasa === c && A.some(x => potriveste(r, x.it))).forEach(r => n -= r.oreAn / pondere(r));
-      A.forEach(x => { const v = asoc.val[x.i]; if(v.on) n += v.oreAn / (x.it.tip === "PIP" ? 936 : 720); });
+      A.forEach(x => { const v = asoc.val[x.i]; if(v.on) n += v.oreAn / ponderePe(null, x.it.tip); });
       const tot = A.reduce((s, x) => s + (asoc.val[x.i].on && x.it.inOrar ? asoc.val[x.i].oreAn / cl.saptamani : 0), 0);
       h += `<p style="margin-top:10px">La ${esc(c)}: <b>${fmt(tot)} ore/săpt.</b> în orar · norma lui după salvare: <b>${procent(n)}</b> (${fmt(n)} norme).</p>`;
     }
@@ -2018,7 +2042,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.7 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.3 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
