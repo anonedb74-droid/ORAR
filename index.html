@@ -431,6 +431,17 @@ CORECTURI.push({id:"2026-11-18-plan-xi-xid-2027", text:"X I: planul-cadru nou al
       xd.saptamani = 32; xd.nivel = "liceu"; xd.dinModel = "XI I (2026-2027) – cultura generală";
     }
   }});
+/* 18.11: conducerea = elevi × 30 (B) / × 24 (Tr). În 2026-2027 numărul de elevi se deduce din orele de conducere B din plan (XI F 24, XI G 16, XI L 22). */
+CORECTURI.push({id:"2026-11-18-elevi-conducere", text:"Fișa clasei are acum „Nr. elevi”; la clasele a XI-a orele de conducere = elevi × 30 (B), × 24 (Tr).",
+  f: s => {
+    if(s.an !== "2026-2027") return;
+    if(!(s.clase || []).some(cl => (cl.discipline || []).length)) return false;
+    for(const cl of s.clase || []){
+      if(cl.elevi) continue;
+      const b = (cl.discipline || []).find(it => catConducere(it.d) === "B");
+      if(b && b.oreAn) cl.elevi = Math.round(b.oreAn / 30);
+    }
+  }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
@@ -1076,7 +1087,10 @@ function fisaClasa(cl){
     <div><label>Locație</label><select onchange="setCls('${jsq(c)}','locatie',this.value)">${locs.map(l => `<option ${l === cl.locatie ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></div>
     <div><label>Diriginte</label><input list="dlProfi" value="${esc(cl.diriginte)}" style="width:200px" onchange="setCls('${jsq(c)}','diriginte',this.value)"></div>
     <div><label>Săptămâni de curs</label><input type="number" min="1" max="40" value="${cl.saptamani}" style="width:80px" onchange="setCls('${jsq(c)}','saptamani',+this.value||${cl.saptamani})"></div>
-  </div><div class="row" style="margin-top:8px">
+    <div><label>Nr. elevi (început de an)</label><input type="number" min="0" max="40" value="${cl.elevi || ""}" style="width:80px" onchange="setCls('${jsq(c)}','elevi',+this.value||0)"></div>
+  </div>${(() => { const C = (cl.discipline || []).map(it => catConducere(it.d)).filter(Boolean); if(!C.length) return "";
+    const n = +cl.elevi || 0;
+    return `<p class="${n ? "muted" : "rau"}" style="font-size:13px;margin:6px 0 0">Conducere (norma se constituie din elevii de la începutul anului): ${n ? [...new Set(C)].map(k => `cat. ${k === "TR" ? "Tr" : "B"}: ${n} × ${ORE_COND[k]} = <b>${n * ORE_COND[k]} ore</b>`).join(" · ") : "scrie numărul de elevi – orele de conducere se calculează singure (elevi × 30 la B, × 24 la Tr)."}</p>`; })()}<div class="row" style="margin-top:8px">
     <div style="min-width:200px" class="grow"><label>Profil${cl.nivel === "profesional" ? " (la profesional poate rămâne gol)" : ""}</label><input list="dlProfil" value="${esc(cl.profil)}" style="width:100%" onchange="setCls('${jsq(c)}','profil',this.value)"></div>
     <div style="min-width:200px" class="grow"><label>Domeniul de pregătire</label><input list="dlDomeniu" value="${esc(cl.domeniu)}" style="width:100%" onchange="setCls('${jsq(c)}','domeniu',this.value)"></div>
     <div style="min-width:260px" class="grow"><label>Calificarea profesională</label><input list="dlCalif" value="${esc(cl.calificare)}" style="width:100%" onchange="setCls('${jsq(c)}','calificare',this.value)"></div>
@@ -1167,9 +1181,22 @@ function alegeProfDisc(c, i){
     <div class="row" style="margin-top:14px"><span class="grow"></span><button class="btn sec" onclick="inchideModal()">Renunță</button></div>`;
   $("#modal").classList.add("deschis");
 }
+/* Conducerea (clasa a XI-a): norma se constituie din numărul de elevi de la începutul anului școlar – elevi × 30 ore (cat. B), elevi × 24 ore (cat. Tr). */
+const ORE_COND = {B: 30, TR: 24};
+function catConducere(d){
+  const t = String(d || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+  const m = t.match(/^CONDUCERE AUTO (?:CATEGORIA|CAT\.?) ?(B|TR)\b/); return m ? m[1] : "";
+}
+function aplicaEleviConducere(cl){
+  const n = +cl.elevi || 0; if(!n) return 0;
+  let k = 0;
+  for(const it of cl.discipline || []){ const c = catConducere(it.d); if(!c) continue; it.oreAn = n * ORE_COND[c]; it.inOrar = false; it.motiv = it.motiv || "conducere (individual)"; k++; }
+  return k;
+}
 function setCls(c, k, v){
   const cl = clasa(c); if(!cl) return;
   cl[k] = typeof v === "string" ? v.trim() : v;
+  if(k === "elevi"){ const n = aplicaEleviConducere(cl); saveState(); render(); toast(n ? `Salvat. Conducerea recalculată: ${cl.elevi} elevi × 30 (B) / × 24 (Tr).` : "Salvat."); return; }
   saveState(); render(); toast("Salvat.");
 }
 function redenumesteClasa(v, nou){
@@ -2042,7 +2069,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.3 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.3.1 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
