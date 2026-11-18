@@ -1341,18 +1341,21 @@ function renderMulti(){
   const rows = state.clase.map(cl => {
     const X = acoperire(cl).filter(x => multiDisc(x.it));
     const lui = X.reduce((s, x) => s + x.R.filter(r => r.p === p).reduce((t, r) => t + r.oreAn, 0), 0);
-    const liber = X.reduce((s, x) => s + Math.max(0, x.it.oreAn - x.R.filter(r => r.p !== p).reduce((t, r) => t + r.oreAn, 0)), 0);
-    return {cl, X, lui, liber};
+    const lib = x => Math.max(0, x.it.oreAn - x.R.filter(r => r.p !== p).reduce((t, r) => t + r.oreAn, 0));
+    const liber = X.reduce((s, x) => s + lib(x), 0);
+    const liberO = X.filter(x => x.it.inOrar).reduce((s, x) => s + lib(x), 0), liberA = X.filter(x => !x.it.inOrar).reduce((s, x) => s + lib(x), 0);
+    return {cl, X, lui, liber, liberO, liberA};
   });
   multi.sel ??= Object.fromEntries(rows.map(r => [r.cl.id, r.lui > 0]));
   const linie = r => {
-    const {cl, X, lui, liber} = r, c = cl.id, s = cl.saptamani;
+    const {cl, X, lui, liber, liberO, liberA} = r, c = cl.id, s = cl.saptamani;
     const info = !X.length ? '<span class="muted">nu e în planul clasei</span>'
       : X.map(x => { const al = x.R.filter(q => q.p !== p); const el = x.R.filter(q => q.p === p).reduce((t, q) => t + q.oreAn, 0);
-          return `${esc(x.it.d)}: <b>${fmt(x.it.oreAn / s)}</b>/săpt.${el ? ` · <span class="ok">are ${fmt(el / s)}</span>` : ""}${al.length ? ` · <span class="muted">${al.map(q => esc(scurt(q.p)) + " " + fmt(q.oreAn / s)).join(", ")}</span>` : ""}`; }).join("<br>");
+          const u = x.it.inOrar ? (v => fmt(v / s)) : (v => fmt(v)), um = x.it.inOrar ? "/săpt." : " ore/an <span class=\"muted\">(în afara orarului)</span>";
+          return `${esc(x.it.d)}: <b>${u(x.it.oreAn)}</b>${um}${el ? ` · <span class="ok">are ${u(el)}</span>` : ""}${al.length ? ` · <span class="muted">${al.map(q => esc(scurt(q.p)) + " " + u(q.oreAn)).join(", ")}</span>` : ""}`; }).join("<br>");
     const dez = !X.length || (!lui && liber <= 0.5);
     return `<tr${dez ? ' style="opacity:.55"' : ""}><td style="text-align:center"><input type="checkbox" data-c="${esc(c)}" ${multi.sel[c] ? "checked" : ""} ${dez ? "disabled" : ""} onchange="multi.sel['${jsq(c)}']=this.checked;renderMulti()"></td>
-      <td><b>${esc(c)}</b><div class="muted" style="font-size:12px">${esc(eticheta(cl))}</div></td><td style="font-size:13px">${info}${!dez && !lui && liber > 0.5 ? `<div class="muted" style="font-size:12px">liber: ${fmt(liber / s)} ore/săpt.</div>` : ""}${X.length > 1 ? `<div><a href="#" style="font-size:12px" onclick="inchideModal();asociazaClasa('${jsq(p)}','${jsq(c)}');return false">Detalii – alege orele</a></div>` : ""}</td></tr>`;
+      <td><b>${esc(c)}</b><div class="muted" style="font-size:12px">${esc(eticheta(cl))}</div></td><td style="font-size:13px">${info}${!dez && !lui && liber > 0.5 ? `<div class="muted" style="font-size:12px">liber: ${[liberO > 0.5 ? fmt(liberO / s) + " ore/săpt." : "", liberA > 0.5 ? fmt(liberA) + " ore/an în afara orarului" : ""].filter(Boolean).join(" + ")}</div>` : ""}${X.length > 1 ? `<div><a href="#" style="font-size:12px" onclick="inchideModal();asociazaClasa('${jsq(p)}','${jsq(c)}');return false">Detalii – alege orele</a></div>` : ""}</td></tr>`;
   };
   // norma după salvare
   let n = norma(p);
@@ -1991,7 +1994,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.5 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.6 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
