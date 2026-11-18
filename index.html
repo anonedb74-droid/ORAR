@@ -362,11 +362,32 @@ CORECTURI.push({id:"2026-11-18-x-liceu-plan-nou", text:"La X F și X G (liceu, p
       cl.discipline = clone(m.discipline); cl.saptamani = 26; cl.nivel = "liceu";
     }
   }});
+/* 18.11: în 2027-2028 intră patru clase noi a IX-a, la fel ca în 2026-2027 (IX F, IX G, IX I, IX J): același profil, domeniu, nivel, locație,
+   săptămâni și aceleași discipline (planul-cadru), luate din anul 2026-2027 salvat în browser (sau din modelele lui). Fără diriginte, încadrare și orar. */
+CORECTURI.push({id:"2026-11-18-ix-noi-2027", text:"În 2027-2028 am adăugat clasele noi IX F, IX G, IX I, IX J, cu planul-cadru și datele din 2026-2027.",
+  f: s => {
+    if(s.an !== "2027-2028") return false;
+    let vechi = null; try{ vechi = JSON.parse(localStorage.getItem("orar_an_2026-2027") || "null"); }catch(e){}
+    if(!vechi && state && state !== s && state.an === "2026-2027") vechi = state;
+    const PDC = {"IX F":PDC_2026["IX F"], "IX G":PDC_2026["IX G"], "IX I":PDC_2026["IX I"], "IX J":PDC_2026["IX J"]};
+    for(const id of Object.keys(PDC)){
+      if(s.clase.some(c => c.id === id)) continue;
+      const o = vechi && (vechi.clase || []).find(c => c.id === id);
+      const m = !o && (s.modele || []).find(x => x.nume === id + " (2026-2027)");
+      const src = o || m || {};
+      const [pr, dm, cf, nv] = PDC[id];
+      s.clase.push({id, profil: src.profil ?? pr, domeniu: src.domeniu ?? dm, calificare: src.calificare ?? cf, nivel: src.nivel || nv,
+        locatie: (o && o.locatie) || "Șendriceni", diriginte: "", saptamani: src.saptamani || 30,
+        discipline: clone(src.discipline || []), dinModel: id + " (2026-2027)", urmeaza: ""});
+      s.orar[id] ??= {}; for(const z of (s.zile || ZILE)) s.orar[id][z] ??= {};
+    }
+    s.clase.sort((a, b) => (rangClasa(a.id) - rangClasa(b.id)) || ro(a.id, b.id));
+  }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
     if(state.meta.corecturi.includes(c.id)) continue;
-    try{ c.f(state); state.meta.corecturi.push(c.id); setTimeout(() => toast("Corectură aplicată: " + c.text), 800); saveState(); }catch(e){}
+    try{ if(c.f(state) === false) continue; state.meta.corecturi.push(c.id); setTimeout(() => toast("Corectură aplicată: " + c.text), 800); saveState(); }catch(e){}
   }
 }
 function saveState(){ cacheVer = null; clearTimeout(saveTimer); saveTimer = setTimeout(saveStateNow, 150); }
@@ -1946,7 +1967,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.3 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.4 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
