@@ -347,6 +347,21 @@ CORECTURI.push({id:"2026-11-15-model-x-tehnic", text:"Am adăugat modelul de pla
     s.modele.unshift({nume: NUME_MODEL_X_TEHNIC, calificare: "", domeniu: "Mecanică", profil: "Tehnic", nivel: "liceu", saptamani: 26, discipline: disc});
     for(const cl of s.clase || []) if(rangClasa(cl.id) === 10 && planNou(cl) && !(cl.discipline || []).length && (fara(cl.profil) === "tehnic" || fara(cl.domeniu) === "mecanica")){ cl.discipline = clone(disc); cl.saptamani = 26; }
   }});
+/* 18.11: la clasele a X-a liceu din planul nou (X F, X G în 2027-2028) au rămas uneori disciplinele planului vechi de profesională
+   (copiate de la X F / X G din 2026-2027). Le înlocuim cu modelul X liceu Tehnic, dacă încă nu au încadrare; planul vechi se păstrează ca model. */
+CORECTURI.push({id:"2026-11-18-x-liceu-plan-nou", text:"La X F și X G (liceu, planul nou) am pus planul-cadru nou al clasei a X-a; disciplinele vechi (de la profesională) au rămas salvate ca model.",
+  f: s => {
+    const m = (s.modele || []).find(x => x.nume === NUME_MODEL_X_TEHNIC); if(!m) return;
+    for(const cl of s.clase || []){
+      if(rangClasa(cl.id) !== 10 || !planNou(cl) || !(fara(cl.profil) === "tehnic" || fara(cl.domeniu) === "mecanica")) continue;
+      const D = cl.discipline || [];
+      const eModel = D.length && D.every(it => it.comp) && cl.saptamani === 26;
+      const areInc = (s.incadrare || []).some(r => r.clasa === cl.id);
+      if(eModel || areInc || !D.length) continue;
+      s.modele.push({nume: cl.id + " – plan vechi (înlocuit 18.11)", calificare: cl.calificare || "", domeniu: cl.domeniu || "", profil: cl.profil || "", nivel: "profesional", saptamani: cl.saptamani, discipline: clone(D)});
+      cl.discipline = clone(m.discipline); cl.saptamani = 26; cl.nivel = "liceu";
+    }
+  }});
 function aplicaCorecturi(){
   state.meta.corecturi ??= [];
   for(const c of CORECTURI){
@@ -1931,7 +1946,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.2.2 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.2.3 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
