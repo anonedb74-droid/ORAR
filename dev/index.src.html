@@ -218,6 +218,7 @@ const REGULI_INITIALE = [
   {id:"R20", text:"Calitatea orarului: ore cât mai compacte și fără deplasări în două locații. Sunt situații în care deplasarea e necesară și nu există altă soluție (de exemplu, Pușcașu are o singură zi, cu ore în ambele locații).", auto:"Zilele în două locații apar ca avertismente R2; cele inevitabile rămân."},
   {id:"R21", text:"Profesorii care au ore la școala gimnazială din Ghilea pot avea în aceeași zi și ore la Șendriceni (2–4 minute cu mașina între școli).", auto:"Orarul de la Ghilea nu e în aplicație; zilele profesorilor nu se schimbă la reorganizare, ca să nu se strice orarul de la Ghilea."},
   {id:"R22", text:"Notația perioadelor în orar: „IX F/” (bara după clasă) = P1, prima perioadă (săptămânile de la început); „/IX F” (bara înainte de clasă) = P2, a doua perioadă (săptămânile de după, până la final); „*” = alternanță (A). P vine de la „perioadă”; denumirea P1/P2 nu vine din planul-cadru, e notația aplicației pentru planșa din Excel.", auto:"Aplicată: în celule, P1 / P2 / A la fiecare profesor; în planșă și la export se scriu „IX F/”, „/IX F” și „*”."},
+  {id:"R23", text:"Norma la conducere (clasa a XI-a) se constituie din numărul de elevi existenți în clasă la începutul anului școlar: nr. elevi × 30 ore la categoria B și nr. elevi × 24 ore la categoria Tr.", auto:"În fișa clasei: „Nr. elevi (început de an)”; orele de conducere din plan se calculează singure (elevi × 30 la B, × 24 la Tr) și sunt în afara orarului."},
   {id:"R12", text:"Clasele a IX-a au Lăcătușărie generală cam primele 7 săptămâni, apoi pe aceleași ore au Bazele desenului tehnic cu Asaftei Lidia. [De rescris: în orarul actual, ziua de specialitate de la IX F și IX G are Dohotariu Viorel în prima perioadă și Pohoață Mihaela în a doua, câte 15 săptămâni.]", auto:""}
 ];
 const NOTE_INITIALE = [
@@ -2069,7 +2070,7 @@ function vDate(){
     ${TABURI.filter(t => t.id !== "date").map(t => `<label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" ${state.meta.taburiAscunse.includes(t.id) ? "" : "checked"} onchange="comutaTab('${t.id}',this.checked)"> ${t.t}</label>`).join("")}</div></div>
   ${state.an === DATA_INITIAL.an ? `<div class="card"><h3>Datele inițiale</h3><p class="muted">Readuce orarul și încadrarea la varianta din fișierele de pornire (ORAR 2026-2027.xlsm și încadrarea din 28.09.2026). Fă întâi un backup.</p>
     <button class="btn rosu" onclick="reseteaza()">Readu datele inițiale</button></div>` : ""}
-  <p class="muted">Aplicația ORAR · versiunea 3.3.1 · datele se păstrează în acest browser.</p>`;
+  <p class="muted">Aplicația ORAR · versiunea 3.3.2 · datele se păstrează în acest browser.</p>`;
 }
 function comutaTab(id, vizibil){
   const a = state.meta.taburiAscunse; const i = a.indexOf(id);
